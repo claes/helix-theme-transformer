@@ -96,6 +96,7 @@ fn main() -> Result<()> {
             report_json,
             dry_run,
         } => {
+            let theme_dir_name = theme_file_stem(&theme);
             let theme_dirs = theme_dirs_or_parent(&theme, theme_dirs);
             let resolved = resolve_file(&theme, &theme_dirs)?;
             let (roles, role_warnings) = derive_roles(&resolved);
@@ -180,8 +181,9 @@ fn main() -> Result<()> {
                 }
             }
             if !dry_run {
+                let export_root = out_dir.join(theme_dir_name);
                 for export in generated.files {
-                    let path = out_dir.join(&export.relative_path);
+                    let path = export_root.join(&export.relative_path);
                     if let Some(parent) = path.parent() {
                         std::fs::create_dir_all(parent)
                             .with_context(|| format!("failed to create {parent}"))?;
@@ -221,6 +223,13 @@ fn file_stem(name: &str) -> String {
     } else {
         sanitized
     }
+}
+
+fn theme_file_stem(theme: &Utf8PathBuf) -> String {
+    theme
+        .file_stem()
+        .map(file_stem)
+        .unwrap_or_else(|| "theme".to_owned())
 }
 
 fn theme_dirs_or_parent(theme: &Utf8PathBuf, theme_dirs: Vec<Utf8PathBuf>) -> Vec<Utf8PathBuf> {

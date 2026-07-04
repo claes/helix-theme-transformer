@@ -705,11 +705,11 @@ underline style
 
 Generate a gitui theme directory containing both UI and syntax theme files.
 
-The user provides a parent output directory. Themeforge must create a `gitui/` directory inside it:
+The user provides a parent output directory. Themeforge must create a theme directory from the input TOML file name, then create a `gitui/` directory inside it:
 
 ```text
-<out-dir>/gitui/theme.ron
-<out-dir>/gitui/<resolved-theme-name>.tmTheme
+<out-dir>/<theme-file-name>/gitui/theme.ron
+<out-dir>/<theme-file-name>/gitui/<resolved-theme-name>.tmTheme
 ```
 
 `theme.ron` is a gitui RON patch file for UI colors. The `.tmTheme` file is a TextMate syntax highlighting theme. The RON file must reference the generated syntax theme by file stem:
@@ -819,14 +819,14 @@ The single export command always generates gitui output along with every other s
 Example:
 
 ```bash
-themeforge export path/to/theme.toml --out-dir generated
+themeforge export path/to/my-theme.toml --out-dir generated
 ```
 
 This creates:
 
 ```text
-generated/gitui/theme.ron
-generated/gitui/<resolved-theme-name>.tmTheme
+generated/my-theme/gitui/theme.ron
+generated/my-theme/gitui/<resolved-theme-name>.tmTheme
 ```
 
 The gitui exporter must not require individual output file options for the RON or `.tmTheme` files.
@@ -838,7 +838,7 @@ The gitui exporter must not require individual output file options for the RON o
 Generate a Midnight Commander truecolor skin file:
 
 ```text
-<out-dir>/mc/<resolved-theme-name>.ini
+<out-dir>/<theme-file-name>/mc/<resolved-theme-name>.ini
 ```
 
 Midnight Commander user skins are commonly installed under:
@@ -993,7 +993,7 @@ The Midnight Commander exporter should report:
 Generate a GNU `dircolors` database file:
 
 ```text
-<out-dir>/dircolors/<resolved-theme-name>.dircolors
+<out-dir>/<theme-file-name>/dircolors/<resolved-theme-name>.dircolors
 ```
 
 The exported file must be a `dircolors` input database, not a raw `LS_COLORS` environment assignment.
@@ -1001,7 +1001,7 @@ The exported file must be a `dircolors` input database, not a raw `LS_COLORS` en
 Users can load it with:
 
 ```bash
-eval "$(dircolors generated/dircolors/<resolved-theme-name>.dircolors)"
+eval "$(dircolors generated/<theme-file-name>/dircolors/<resolved-theme-name>.dircolors)"
 ```
 
 ## 11.1 Architecture rule
@@ -1178,22 +1178,25 @@ Suggested commands:
 themeforge inspect path/to/theme.toml
 themeforge resolve path/to/theme.toml
 themeforge resolve path/to/theme.toml --theme-dir user/themes --theme-dir builtin/themes
-themeforge export path/to/theme.toml --out-dir generated
+themeforge export path/to/my-theme.toml --out-dir generated
 ```
 
 The export command always generates all supported formats. It never writes exported theme files to stdout.
+
+`--out-dir` identifies the parent directory where Themeforge creates one theme directory. The theme directory name is derived automatically from the input TOML file name without its extension, after applying the same filename sanitization used for generated files.
 
 The output directory layout is:
 
 ```text
 generated/
-  kitty/<resolved-theme-name>.conf
-  base16/<resolved-theme-name>.yaml
-  bat/<resolved-theme-name>.tmTheme
-  gitui/theme.ron
-  gitui/<resolved-theme-name>.tmTheme
-  mc/<resolved-theme-name>.ini
-  dircolors/<resolved-theme-name>.dircolors
+  my-theme/
+    kitty/<resolved-theme-name>.conf
+    base16/<resolved-theme-name>.yaml
+    bat/<resolved-theme-name>.tmTheme
+    gitui/theme.ron
+    gitui/<resolved-theme-name>.tmTheme
+    mc/<resolved-theme-name>.ini
+    dircolors/<resolved-theme-name>.dircolors
 ```
 
 ## 13.1 Inheritance lookup
