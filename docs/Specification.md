@@ -140,48 +140,58 @@ If alpha is present, preserve it internally but warn when exporting to targets t
 
 Implement an internal semantic model independent of TOML syntax.
 
-Suggested TypeScript-style model:
+Suggested Rust model:
 
-```ts
-type HexColor = string;
+```rust
+type HexColor = String;
 
-type UnderlineStyle =
-  | "line"
-  | "curl"
-  | "dashed"
-  | "dotted"
-  | "double_line";
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum UnderlineStyle {
+    Line,
+    Curl,
+    Dashed,
+    Dotted,
+    DoubleLine,
+}
 
-type Modifier =
-  | "bold"
-  | "italic"
-  | "dim"
-  | "crossed_out"
-  | "reversed";
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Modifier {
+    Bold,
+    Italic,
+    Dim,
+    CrossedOut,
+    Reversed,
+}
 
-type Style = {
-  fg?: HexColor;
-  bg?: HexColor;
-  underline?: {
-    color?: HexColor;
-    style?: UnderlineStyle;
-  };
-  modifiers?: Modifier[];
-};
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+struct Underline {
+    color: Option<HexColor>,
+    style: Option<UnderlineStyle>,
+}
 
-type ResolvedTheme = {
-  name: string;
-  sourcePath: string;
-  palette: Record<string, HexColor>;
-  scopes: Record<string, Style>;
-  warnings: Warning[];
-};
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+struct Style {
+    fg: Option<HexColor>,
+    bg: Option<HexColor>,
+    underline: Option<Underline>,
+    modifiers: Vec<Modifier>,
+}
 
-type Warning = {
-  code: string;
-  message: string;
-  scope?: string;
-};
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ResolvedTheme {
+    name: String,
+    source_path: camino::Utf8PathBuf,
+    palette: indexmap::IndexMap<String, HexColor>,
+    scopes: indexmap::IndexMap<String, Style>,
+    warnings: Vec<Warning>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Warning {
+    code: String,
+    message: String,
+    scope: Option<String>,
+}
 ```
 
 ---
@@ -237,13 +247,29 @@ git_removed
 
 Each role should contain:
 
-```ts
-type SemanticRoleValue = {
-  color?: HexColor;
-  sourceScope?: string;
-  sourceProperty?: "fg" | "bg" | "underline.color";
-  confidence: "exact" | "fallback" | "inferred" | "missing";
-};
+```rust
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct SemanticRoleValue {
+    color: Option<HexColor>,
+    source_scope: Option<String>,
+    source_property: Option<SourceProperty>,
+    confidence: Confidence,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SourceProperty {
+    Fg,
+    Bg,
+    UnderlineColor,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Confidence {
+    Exact,
+    Fallback,
+    Inferred,
+    Missing,
+}
 ```
 
 ## 4.2 Role derivation rule
