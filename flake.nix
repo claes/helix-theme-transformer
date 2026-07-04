@@ -1,5 +1,5 @@
 {
-  description = "Themeforge Helix theme semantic converter";
+  description = "Helix Theme Transformer";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -37,10 +37,10 @@
               );
           };
           common = {
-            pname = "themeforge";
+            pname = "helix-theme-transformer";
             version = "0.1.0";
             inherit src;
-            cargoHash = "sha256-r2pPZoTcOHjZKibpZ5LTflN02BfvhDnk6a6TTH5rluk=";
+            cargoHash = "sha256-RxYOFPmPNrAa4bU5w7RJJqc6SY2hrKN9gxo6sPQEFGs=";
             nativeBuildInputs = [
               pkgs.pkg-config
             ];
@@ -57,7 +57,7 @@
           tests = pkgs.rustPlatform.buildRustPackage (
             common
             // {
-              pname = "themeforge-tests";
+              pname = "helix-theme-transformer-tests";
               doCheck = true;
               cargoTestFlags = [
                 "--workspace"

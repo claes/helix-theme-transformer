@@ -35,7 +35,7 @@ crates/
   semantic-roles/    # scope → role derivation
   palette16/         # Base16-like extraction
   exporters/         # Kitty, Base16, future exporters
-  themeforge-cli/    # command-line interface
+  helix-theme-transformer-cli/ # command-line interface
 ```
 
 Recommended crates:

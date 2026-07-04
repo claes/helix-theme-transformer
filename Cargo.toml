@@ -5,7 +5,7 @@ members = [
     "crates/semantic-roles",
     "crates/palette16",
     "crates/exporters",
-    "crates/themeforge-cli",
+    "crates/helix-theme-transformer-cli",
 ]
 resolver = "2"
 

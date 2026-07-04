@@ -1,11 +1,11 @@
 [package]
-name = "themeforge-cli"
+name = "helix-theme-transformer-cli"
 edition.workspace = true
 license.workspace = true
 version.workspace = true
 
 [[bin]]
-name = "themeforge"
+name = "htt"
 path = "src/main.rs"
 
 [dependencies]

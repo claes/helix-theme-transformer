@@ -10,8 +10,8 @@ use palette16::extract_base16;
 use semantic_roles::derive_roles;
 
 #[derive(Debug, Parser)]
-#[command(name = "themeforge")]
-#[command(about = "Convert Helix themes through a semantic intermediate representation")]
+#[command(name = "htt")]
+#[command(about = "Transform Helix themes through a semantic intermediate representation")]
 struct Cli {
     #[command(subcommand)]
     command: Command,

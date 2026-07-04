@@ -158,6 +158,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "helix-theme-transformer-cli"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "camino",
+ "clap",
+ "exporters",
+ "helix-theme",
+ "palette16",
+ "semantic-roles",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "indexmap"
 version = "2.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -327,21 +342,6 @@ dependencies = [
  "indexmap",
  "serde",
  "thiserror",
-]
-
-[[package]]
-name = "themeforge-cli"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "camino",
- "clap",
- "exporters",
- "helix-theme",
- "palette16",
- "semantic-roles",
- "serde",
- "serde_json",
 ]
 
 [[package]]

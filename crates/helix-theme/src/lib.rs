@@ -387,7 +387,7 @@ mod tests {
 
     #[test]
     fn resolves_inherited_theme_from_first_matching_theme_dir() {
-        let root = temp_test_dir("themeforge-theme-dirs");
+        let root = temp_test_dir("htt-theme-dirs");
         let first = root.join("first");
         let second = root.join("second");
         std::fs::create_dir_all(&first).unwrap();
