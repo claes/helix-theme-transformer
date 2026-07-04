@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use camino::Utf8PathBuf;
 use clap::{Parser, Subcommand, ValueEnum};
-use exporters::{export_base16_yaml, export_kitty, render_report};
+use exporters::{export_base16_yaml, export_bat_tmtheme, export_kitty, render_report};
 use helix_theme::resolve_file;
 use palette16::extract_base16;
 use semantic_roles::derive_roles;
@@ -71,6 +71,8 @@ enum Target {
     Kitty,
     /// Generate a Base16-like YAML palette.
     Base16,
+    /// Generate a bat-compatible Sublime .tmTheme file.
+    Bat,
 }
 
 fn main() -> Result<()> {
@@ -120,6 +122,7 @@ fn main() -> Result<()> {
 
             let (output, export_report) = match target {
                 Target::Kitty => export_kitty(&resolved, &roles, &palette, warnings),
+                Target::Bat => export_bat_tmtheme(&resolved, &roles, &palette, warnings),
                 Target::Base16 => {
                     let output = export_base16_yaml(&palette)?;
                     let report = exporters::ExportReport {

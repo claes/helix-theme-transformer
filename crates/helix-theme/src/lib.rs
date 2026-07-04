@@ -251,19 +251,19 @@ fn parse_style(value: &Value) -> Option<RawStyle> {
         });
     }
     let table = value.as_table()?;
-    let mut style = RawStyle::default();
-    style.fg = table.get("fg").and_then(Value::as_str).map(str::to_owned);
-    style.bg = table.get("bg").and_then(Value::as_str).map(str::to_owned);
-    style.modifiers = table
-        .get("modifiers")
-        .and_then(Value::as_array)
-        .into_iter()
-        .flatten()
-        .filter_map(Value::as_str)
-        .filter_map(parse_modifier)
-        .collect();
-    style.underline = table.get("underline").and_then(parse_underline);
-    Some(style)
+    Some(RawStyle {
+        fg: table.get("fg").and_then(Value::as_str).map(str::to_owned),
+        bg: table.get("bg").and_then(Value::as_str).map(str::to_owned),
+        underline: table.get("underline").and_then(parse_underline),
+        modifiers: table
+            .get("modifiers")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .filter_map(parse_modifier)
+            .collect(),
+    })
 }
 
 fn parse_underline(value: &Value) -> Option<RawUnderline> {
