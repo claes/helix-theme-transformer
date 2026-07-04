@@ -75,6 +75,16 @@ inherits = "base16_default"
 
 then load the inherited theme first, then overlay the child theme.
 
+Inherited theme names are resolved by searching theme directories in priority order.
+
+For single-theme commands, `--theme-dir` is optional and repeatable:
+
+```bash
+themeforge export kitty path/to/theme.toml --theme-dir user/themes --theme-dir builtin/themes
+```
+
+If no `--theme-dir` is provided, use the input theme file's parent directory as the only theme search directory.
+
 Rules:
 
 1. Parent palette entries are inherited.
@@ -702,20 +712,21 @@ Suggested commands:
 
 ```bash
 themeforge inspect path/to/theme.toml
-themeforge resolve path/to/theme.toml --theme-dir path/to/themes
-themeforge export kitty path/to/theme.toml --theme-dir path/to/themes --out theme.conf
-themeforge export base16 path/to/theme.toml --theme-dir path/to/themes --out theme.yaml
-themeforge export bat path/to/theme.toml --theme-dir path/to/themes --out theme.tmTheme
+themeforge resolve path/to/theme.toml
+themeforge resolve path/to/theme.toml --theme-dir user/themes --theme-dir builtin/themes
+themeforge export kitty path/to/theme.toml --out theme.conf
+themeforge export base16 path/to/theme.toml --out theme.yaml
+themeforge export bat path/to/theme.toml --out theme.tmTheme
 themeforge batch-export kitty path/to/themes --out-dir generated/kitty
 ```
 
-## 10.1 Required options
+## 10.1 Inheritance lookup
 
-```text
---theme-dir
-```
+`--theme-dir` is optional and may be passed more than once.
 
-Directory used to resolve inherited Helix themes.
+When provided, inherited theme names are searched in the given directories in command-line order.
+
+When omitted, inherited theme names are searched in the input theme file's parent directory.
 
 ## 10.2 Useful options
 

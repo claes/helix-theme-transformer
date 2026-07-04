@@ -20,9 +20,9 @@ enum Command {
     Inspect {
         /// Path to the Helix theme TOML file to inspect.
         theme: Utf8PathBuf,
-        /// Directory used to resolve inherited Helix themes.
-        #[arg(long)]
-        theme_dir: Option<Utf8PathBuf>,
+        /// Directory used to resolve inherited Helix themes; may be repeated.
+        #[arg(long = "theme-dir")]
+        theme_dirs: Vec<Utf8PathBuf>,
         /// Pretty-print JSON output.
         #[arg(long)]
         pretty: bool,
@@ -31,9 +31,9 @@ enum Command {
     Resolve {
         /// Path to the Helix theme TOML file to resolve.
         theme: Utf8PathBuf,
-        /// Directory used to resolve inherited Helix themes.
-        #[arg(long)]
-        theme_dir: Utf8PathBuf,
+        /// Directory used to resolve inherited Helix themes; may be repeated.
+        #[arg(long = "theme-dir")]
+        theme_dirs: Vec<Utf8PathBuf>,
         /// Pretty-print JSON output.
         #[arg(long)]
         pretty: bool,
@@ -44,9 +44,9 @@ enum Command {
         target: Target,
         /// Path to the Helix theme TOML file to export.
         theme: Utf8PathBuf,
-        /// Directory used to resolve inherited Helix themes.
-        #[arg(long)]
-        theme_dir: Utf8PathBuf,
+        /// Directory used to resolve inherited Helix themes; may be repeated.
+        #[arg(long = "theme-dir")]
+        theme_dirs: Vec<Utf8PathBuf>,
         /// File path to write the exported theme; stdout is used when omitted.
         #[arg(long)]
         out: Option<Utf8PathBuf>,
@@ -80,37 +80,34 @@ fn main() -> Result<()> {
     match cli.command {
         Command::Inspect {
             theme,
-            theme_dir,
+            theme_dirs,
             pretty,
         } => {
-            let theme_dir = theme_dir.unwrap_or_else(|| {
-                theme
-                    .parent()
-                    .map(Utf8PathBuf::from)
-                    .unwrap_or_else(|| Utf8PathBuf::from("."))
-            });
-            let resolved = resolve_file(&theme, &theme_dir)?;
+            let theme_dirs = theme_dirs_or_parent(&theme, theme_dirs);
+            let resolved = resolve_file(&theme, &theme_dirs)?;
             print_json(&resolved, pretty)?;
         }
         Command::Resolve {
             theme,
-            theme_dir,
+            theme_dirs,
             pretty,
         } => {
-            let resolved = resolve_file(&theme, &theme_dir)?;
+            let theme_dirs = theme_dirs_or_parent(&theme, theme_dirs);
+            let resolved = resolve_file(&theme, &theme_dirs)?;
             print_json(&resolved, pretty)?;
         }
         Command::Export {
             target,
             theme,
-            theme_dir,
+            theme_dirs,
             out,
             strict,
             report,
             report_json,
             dry_run,
         } => {
-            let resolved = resolve_file(&theme, &theme_dir)?;
+            let theme_dirs = theme_dirs_or_parent(&theme, theme_dirs);
+            let resolved = resolve_file(&theme, &theme_dirs)?;
             let (roles, role_warnings) = derive_roles(&resolved);
             let (palette, palette_warnings) = extract_base16(&roles);
             let mut warnings = resolved.warnings.clone();
@@ -155,6 +152,17 @@ fn main() -> Result<()> {
         }
     }
     Ok(())
+}
+
+fn theme_dirs_or_parent(theme: &Utf8PathBuf, theme_dirs: Vec<Utf8PathBuf>) -> Vec<Utf8PathBuf> {
+    if theme_dirs.is_empty() {
+        vec![theme
+            .parent()
+            .map(Utf8PathBuf::from)
+            .unwrap_or_else(|| Utf8PathBuf::from("."))]
+    } else {
+        theme_dirs
+    }
 }
 
 fn print_json<T: serde::Serialize>(value: &T, pretty: bool) -> Result<()> {

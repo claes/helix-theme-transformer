@@ -16,6 +16,11 @@ pub enum HelixThemeError {
     NonUtf8Path(String),
     #[error("inherited theme cycle detected at {0}")]
     InheritanceCycle(String),
+    #[error("inherited theme `{name}` was not found in theme directories: {theme_dirs:?}")]
+    InheritedThemeNotFound {
+        name: String,
+        theme_dirs: Vec<Utf8PathBuf>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -108,14 +113,14 @@ pub fn load_raw(path: &Utf8Path) -> Result<RawTheme, HelixThemeError> {
 
 pub fn resolve_file(
     path: &Utf8Path,
-    theme_dir: &Utf8Path,
+    theme_dirs: &[Utf8PathBuf],
 ) -> Result<ResolvedTheme, HelixThemeError> {
-    resolve_file_inner(path, theme_dir, &mut Vec::new())
+    resolve_file_inner(path, theme_dirs, &mut Vec::new())
 }
 
 fn resolve_file_inner(
     path: &Utf8Path,
-    theme_dir: &Utf8Path,
+    theme_dirs: &[Utf8PathBuf],
     stack: &mut Vec<String>,
 ) -> Result<ResolvedTheme, HelixThemeError> {
     let raw = load_raw(path)?;
@@ -125,14 +130,28 @@ fn resolve_file_inner(
     stack.push(raw.name.clone());
 
     let resolved = if let Some(parent) = raw.inherits.as_deref() {
-        let parent_path = theme_dir.join(format!("{parent}.toml"));
-        let parent = resolve_file_inner(&parent_path, theme_dir, stack)?;
+        let parent_path = find_theme(parent, theme_dirs)?;
+        let parent = resolve_file_inner(&parent_path, theme_dirs, stack)?;
         overlay_and_resolve(parent, raw)
     } else {
         resolve_raw(raw)
     };
     stack.pop();
     Ok(resolved)
+}
+
+fn find_theme(name: &str, theme_dirs: &[Utf8PathBuf]) -> Result<Utf8PathBuf, HelixThemeError> {
+    let filename = format!("{name}.toml");
+    for dir in theme_dirs {
+        let path = dir.join(&filename);
+        if path.exists() {
+            return Ok(path);
+        }
+    }
+    Err(HelixThemeError::InheritedThemeNotFound {
+        name: name.to_owned(),
+        theme_dirs: theme_dirs.to_vec(),
+    })
 }
 
 fn overlay_and_resolve(parent: ResolvedTheme, child: RawTheme) -> ResolvedTheme {
@@ -364,5 +383,67 @@ mod tests {
         let resolved = resolve_raw(raw);
         assert!(resolved.scopes["keyword"].fg.is_none());
         assert_eq!(resolved.warnings[0].code, "missing_palette_reference");
+    }
+
+    #[test]
+    fn resolves_inherited_theme_from_first_matching_theme_dir() {
+        let root = temp_test_dir("themeforge-theme-dirs");
+        let first = root.join("first");
+        let second = root.join("second");
+        std::fs::create_dir_all(&first).unwrap();
+        std::fs::create_dir_all(&second).unwrap();
+        std::fs::write(
+            first.join("parent.toml"),
+            r##"
+            "ui.background" = { bg = "first_bg" }
+
+            [palette]
+            first_bg = "#101010"
+            "##,
+        )
+        .unwrap();
+        std::fs::write(
+            second.join("parent.toml"),
+            r##"
+            "ui.background" = { bg = "second_bg" }
+
+            [palette]
+            second_bg = "#202020"
+            "##,
+        )
+        .unwrap();
+        std::fs::write(
+            root.join("child.toml"),
+            r##"
+            inherits = "parent"
+            "ui.text" = "fg"
+
+            [palette]
+            fg = "#eeeeee"
+            "##,
+        )
+        .unwrap();
+
+        let child_path = Utf8PathBuf::from_path_buf(root.join("child.toml")).unwrap();
+        let theme_dirs = vec![
+            Utf8PathBuf::from_path_buf(first.clone()).unwrap(),
+            Utf8PathBuf::from_path_buf(second).unwrap(),
+        ];
+        let resolved = resolve_file(&child_path, &theme_dirs).unwrap();
+
+        assert_eq!(
+            resolved.scopes["ui.background"].bg.as_deref(),
+            Some("#101010")
+        );
+        assert_eq!(resolved.scopes["ui.text"].fg.as_deref(), Some("#eeeeee"));
+
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    fn temp_test_dir(prefix: &str) -> std::path::PathBuf {
+        let path = std::env::temp_dir().join(format!("{prefix}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&path);
+        std::fs::create_dir_all(&path).unwrap();
+        path
     }
 }
