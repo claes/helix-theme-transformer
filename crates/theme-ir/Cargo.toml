@@ -1,0 +1,11 @@
+[package]
+name = "theme-ir"
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[dependencies]
+camino.workspace = true
+indexmap.workspace = true
+serde.workspace = true
+thiserror.workspace = true

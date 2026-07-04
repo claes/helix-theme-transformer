@@ -1,0 +1,11 @@
+[package]
+name = "palette16"
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[dependencies]
+indexmap.workspace = true
+serde.workspace = true
+semantic-roles = { path = "../semantic-roles" }
+theme-ir = { path = "../theme-ir" }

@@ -1,0 +1,13 @@
+[package]
+name = "semantic-roles"
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[dependencies]
+indexmap.workspace = true
+serde.workspace = true
+theme-ir = { path = "../theme-ir" }
+
+[dev-dependencies]
+camino.workspace = true

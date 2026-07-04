@@ -28,7 +28,13 @@
               let
                 base = baseNameOf path;
               in
-              !(base == ".direnv" || base == ".git" || base == "target");
+              !(
+                base == ".direnv"
+                || base == ".git"
+                || base == "target"
+                || base == "result"
+                || pkgs.lib.hasPrefix "result-" base
+              );
           };
           common = {
             pname = "themeforge";

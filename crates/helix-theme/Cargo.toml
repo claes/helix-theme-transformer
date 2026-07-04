@@ -1,0 +1,13 @@
+[package]
+name = "helix-theme"
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[dependencies]
+camino.workspace = true
+indexmap.workspace = true
+serde.workspace = true
+theme-ir = { path = "../theme-ir" }
+thiserror.workspace = true
+toml.workspace = true

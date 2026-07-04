@@ -1,0 +1,17 @@
+[package]
+name = "exporters"
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[dependencies]
+indexmap.workspace = true
+palette16 = { path = "../palette16" }
+semantic-roles = { path = "../semantic-roles" }
+serde.workspace = true
+serde_yaml.workspace = true
+theme-ir = { path = "../theme-ir" }
+
+[dev-dependencies]
+camino.workspace = true
+helix-theme = { path = "../helix-theme" }

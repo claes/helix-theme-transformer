@@ -1,0 +1,35 @@
+"ui.background" = { bg = "bg" }
+"ui.statusline" = { bg = "surface" }
+"ui.selection" = { bg = "selection" }
+"ui.text" = "fg"
+"ui.text.focus" = "fg"
+"ui.cursor" = { bg = "blue" }
+"comment" = "comment"
+"keyword" = "purple"
+"function" = "blue"
+"type" = "yellow"
+"string" = "green"
+"constant.numeric" = "orange"
+"operator" = "purple"
+"special" = "cyan"
+"diagnostic.error" = { underline = { color = "red", style = "curl" } }
+"diagnostic.warning" = { underline = { color = "yellow", style = "curl" } }
+"diagnostic.info" = { underline = { color = "cyan", style = "curl" } }
+"diagnostic.hint" = { underline = { color = "blue", style = "curl" } }
+"diff.plus" = "green"
+"diff.delta" = "yellow"
+"diff.minus" = "red"
+
+[palette]
+bg = "#1f2335"
+fg = "#c0caf5"
+surface = "#292e42"
+selection = "#3b4261"
+comment = "#565f89"
+red = "#f7768e"
+orange = "#ff9e64"
+yellow = "#e0af68"
+green = "#9ece6a"
+cyan = "#7dcfff"
+blue = "#7aa2f7"
+purple = "#bb9af7"
