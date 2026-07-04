@@ -28,7 +28,7 @@
               path = ./.;
               name = "themeforge-source";
             };
-            cargoHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+            cargoHash = "sha256-r2pPZoTcOHjZKibpZ5LTflN02BfvhDnk6a6TTH5rluk=";
             nativeBuildInputs = [
               pkgs.pkg-config
             ];
