@@ -1,7 +1,9 @@
 use anyhow::{Context, Result};
 use camino::Utf8PathBuf;
 use clap::{Parser, Subcommand, ValueEnum};
-use exporters::{export_base16_yaml, export_bat_tmtheme, export_kitty, render_report};
+use exporters::{
+    export_base16_yaml, export_bat_tmtheme, export_gitui, export_kitty, render_report,
+};
 use helix_theme::resolve_file;
 use palette16::extract_base16;
 use semantic_roles::derive_roles;
@@ -50,6 +52,9 @@ enum Command {
         /// File path to write the exported theme; stdout is used when omitted.
         #[arg(long)]
         out: Option<Utf8PathBuf>,
+        /// Directory to receive generated output directories for multi-file exporters.
+        #[arg(long = "out-dir")]
+        out_dir: Option<Utf8PathBuf>,
         /// Treat parser, resolver, role, and palette warnings as errors.
         #[arg(long)]
         strict: bool,
@@ -73,6 +78,8 @@ enum Target {
     Base16,
     /// Generate a bat-compatible Sublime .tmTheme file.
     Bat,
+    /// Generate a gitui theme directory containing theme.ron and a .tmTheme file.
+    Gitui,
 }
 
 fn main() -> Result<()> {
@@ -101,6 +108,7 @@ fn main() -> Result<()> {
             theme,
             theme_dirs,
             out,
+            out_dir,
             strict,
             report,
             report_json,
@@ -116,10 +124,17 @@ fn main() -> Result<()> {
             if strict && !warnings.is_empty() {
                 anyhow::bail!("strict mode failed with {} warning(s)", warnings.len());
             }
+            if !matches!(target, Target::Gitui) && out_dir.is_some() {
+                anyhow::bail!("--out-dir is only supported for gitui export");
+            }
 
-            let (output, export_report) = match target {
-                Target::Kitty => export_kitty(&resolved, &roles, &palette, warnings),
-                Target::Bat => export_bat_tmtheme(&resolved, &roles, &palette, warnings),
+            let export = match target {
+                Target::Kitty => {
+                    ExportOutput::SingleFile(export_kitty(&resolved, &roles, &palette, warnings))
+                }
+                Target::Bat => ExportOutput::SingleFile(export_bat_tmtheme(
+                    &resolved, &roles, &palette, warnings,
+                )),
                 Target::Base16 => {
                     let output = export_base16_yaml(&palette)?;
                     let report = exporters::ExportReport {
@@ -129,29 +144,74 @@ fn main() -> Result<()> {
                         dropped: Vec::new(),
                         warnings,
                     };
-                    (output, report)
+                    ExportOutput::SingleFile((output, report))
+                }
+                Target::Gitui => {
+                    if out.is_some() {
+                        anyhow::bail!("gitui export uses --out-dir instead of --out");
+                    }
+                    let out_dir = out_dir
+                        .as_ref()
+                        .context("gitui export requires --out-dir")?;
+                    ExportOutput::Gitui {
+                        parent_dir: out_dir.clone(),
+                        theme: export_gitui(&resolved, &roles, &palette, warnings),
+                    }
                 }
             };
+            let export_report = export.report();
 
             if let Some(path) = report_json {
-                let json = serde_json::to_string_pretty(&export_report)?;
+                let json = serde_json::to_string_pretty(export_report)?;
                 std::fs::write(&path, json)
                     .with_context(|| format!("failed to write report JSON to {path}"))?;
             }
             if report {
-                eprintln!("{}", render_report(&export_report));
+                eprintln!("{}", render_report(export_report));
             }
             if !dry_run {
-                if let Some(path) = out {
-                    std::fs::write(&path, output)
-                        .with_context(|| format!("failed to write export to {path}"))?;
-                } else {
-                    print!("{output}");
+                match export {
+                    ExportOutput::SingleFile((output, _)) => {
+                        if let Some(path) = out {
+                            std::fs::write(&path, output)
+                                .with_context(|| format!("failed to write export to {path}"))?;
+                        } else {
+                            print!("{output}");
+                        }
+                    }
+                    ExportOutput::Gitui { parent_dir, theme } => {
+                        let gitui_dir = parent_dir.join("gitui");
+                        std::fs::create_dir_all(&gitui_dir)
+                            .with_context(|| format!("failed to create {gitui_dir}"))?;
+                        let theme_path = gitui_dir.join("theme.ron");
+                        std::fs::write(&theme_path, theme.theme_ron)
+                            .with_context(|| format!("failed to write {theme_path}"))?;
+                        let syntax_path = gitui_dir.join(theme.syntax_file_name);
+                        std::fs::write(&syntax_path, theme.syntax_tmtheme)
+                            .with_context(|| format!("failed to write {syntax_path}"))?;
+                    }
                 }
             }
         }
     }
     Ok(())
+}
+
+enum ExportOutput {
+    SingleFile((String, exporters::ExportReport)),
+    Gitui {
+        parent_dir: Utf8PathBuf,
+        theme: exporters::GituiTheme,
+    },
+}
+
+impl ExportOutput {
+    fn report(&self) -> &exporters::ExportReport {
+        match self {
+            ExportOutput::SingleFile((_, report)) => report,
+            ExportOutput::Gitui { theme, .. } => &theme.report,
+        }
+    }
 }
 
 fn theme_dirs_or_parent(theme: &Utf8PathBuf, theme_dirs: Vec<Utf8PathBuf>) -> Vec<Utf8PathBuf> {

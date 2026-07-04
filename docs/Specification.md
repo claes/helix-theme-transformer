@@ -11,6 +11,7 @@ Initial targets:
 3. base16 palette extraction
 4. Kitty terminal theme export
 5. bat `.tmTheme` syntax highlighting theme export
+6. gitui `theme.ron` and `.tmTheme` export
 
 The core principle is:
 
@@ -698,7 +699,139 @@ underline style
 
 ---
 
-# 9. Loss Report
+# 9. Gitui Exporter
+
+Generate a gitui theme directory containing both UI and syntax theme files.
+
+The user provides a parent output directory. Themeforge must create a `gitui/` directory inside it:
+
+```text
+<out-dir>/gitui/theme.ron
+<out-dir>/gitui/<resolved-theme-name>.tmTheme
+```
+
+`theme.ron` is a gitui RON patch file for UI colors. The `.tmTheme` file is a TextMate syntax highlighting theme. The RON file must reference the generated syntax theme by file stem:
+
+```ron
+(
+  syntax: Some("my-theme"),
+)
+```
+
+If the resolved theme name is `my-theme`, the generated syntax file must be:
+
+```text
+my-theme.tmTheme
+```
+
+## 9.1 Architecture rule
+
+The gitui exporter must consume semantic roles and the derived palette. It must not inspect Helix TOML scopes directly and must not implement a direct `Helix TOML → gitui` conversion.
+
+The required flow is:
+
+```text
+Helix TOML
+   ↓
+Resolved Helix Theme
+   ↓
+Semantic Roles
+   ↓
+Derived 16-color palette
+   ↓
+gitui exporter
+   ├── theme.ron
+   └── <resolved-theme-name>.tmTheme
+```
+
+The syntax `.tmTheme` file should reuse the same TextMate exporter behavior used for the bat exporter.
+
+## 9.2 UI color mapping
+
+Map gitui RON fields from semantic roles first, then Base16-like fallback colors:
+
+```text
+selected_tab         ← special or base0C
+command_fg           ← foreground or base05
+selection_bg         ← selection or base02
+selection_fg         ← foreground or base05
+cmdbar_bg            ← surface or base01
+disabled_fg          ← muted_foreground or base03
+
+diff_line_add        ← git_added or base0B
+diff_line_delete     ← git_removed or error or base08
+diff_file_added      ← git_added or base0B
+diff_file_removed    ← git_removed or error or base08
+diff_file_moved      ← special or base0C
+diff_file_modified   ← git_modified or warning or base0A
+
+commit_hash          ← constant or base09
+commit_time          ← info or muted_foreground or base03
+commit_author        ← variable or function or base0D
+
+danger_fg            ← error or base08
+push_gauge_bg        ← selection or base02
+push_gauge_fg        ← foreground or base05
+tag_fg               ← special or base0C
+branch_fg            ← type or base0A
+block_title_focused  ← bright_foreground or base07
+```
+
+## 9.3 RON output
+
+Generate a deterministic RON patch. Every generated color value must be wrapped in `Some(...)`.
+
+Example:
+
+```ron
+(
+  selected_tab: Some("#7dcfff"),
+  command_fg: Some("#c0caf5"),
+  selection_bg: Some("#3b4261"),
+  selection_fg: Some("#c0caf5"),
+  cmdbar_bg: Some("#292e42"),
+  disabled_fg: Some("#565f89"),
+  diff_line_add: Some("#9ece6a"),
+  diff_line_delete: Some("#f7768e"),
+  diff_file_added: Some("#9ece6a"),
+  diff_file_removed: Some("#f7768e"),
+  diff_file_moved: Some("#7dcfff"),
+  diff_file_modified: Some("#e0af68"),
+  commit_hash: Some("#ff9e64"),
+  commit_time: Some("#7dcfff"),
+  commit_author: Some("#7aa2f7"),
+  danger_fg: Some("#f7768e"),
+  push_gauge_bg: Some("#3b4261"),
+  push_gauge_fg: Some("#c0caf5"),
+  tag_fg: Some("#7dcfff"),
+  branch_fg: Some("#e0af68"),
+  block_title_focused: Some("#c0caf5"),
+  syntax: Some("my-theme"),
+)
+```
+
+## 9.4 CLI output behavior
+
+For gitui exports, `--out-dir` is required and identifies the parent output directory.
+
+Example:
+
+```bash
+themeforge export gitui path/to/theme.toml --out-dir ~/.config
+```
+
+This creates:
+
+```text
+~/.config/gitui/theme.ron
+~/.config/gitui/<resolved-theme-name>.tmTheme
+```
+
+The gitui exporter must not require individual output file options for the RON or `.tmTheme` files.
+
+---
+
+# 10. Loss Report
 
 Every export should produce a report.
 
@@ -732,7 +865,7 @@ Provide reports as:
 
 ---
 
-# 10. CLI
+# 11. CLI
 
 Suggested commands:
 
@@ -743,10 +876,11 @@ themeforge resolve path/to/theme.toml --theme-dir user/themes --theme-dir builti
 themeforge export kitty path/to/theme.toml --out theme.conf
 themeforge export base16 path/to/theme.toml --out theme.yaml
 themeforge export bat path/to/theme.toml --out theme.tmTheme
+themeforge export gitui path/to/theme.toml --out-dir ~/.config
 themeforge batch-export kitty path/to/themes --out-dir generated/kitty
 ```
 
-## 10.1 Inheritance lookup
+## 11.1 Inheritance lookup
 
 `--theme-dir` is optional and may be passed more than once.
 
@@ -754,7 +888,7 @@ When provided, inherited theme names are searched in the given directories in co
 
 When omitted, inherited theme names are searched in the input theme file's parent directory.
 
-## 10.2 Useful options
+## 11.2 Useful options
 
 ```text
 --strict
@@ -775,9 +909,9 @@ When omitted, inherited theme names are searched in the input theme file's paren
 
 ---
 
-# 11. Tests
+# 12. Tests
 
-## 11.1 Unit tests
+## 12.1 Unit tests
 
 Test:
 
@@ -789,9 +923,10 @@ Test:
 6. Base16 extraction
 7. Kitty export
 8. bat `.tmTheme` export
-9. Loss report generation
+9. gitui `theme.ron` export
+10. Loss report generation
 
-## 11.2 Fixture themes
+## 12.2 Fixture themes
 
 Create fixtures for:
 
@@ -807,7 +942,7 @@ underline.toml
 rich-theme.toml
 ```
 
-## 11.3 Golden output tests
+## 12.3 Golden output tests
 
 For selected fixture themes, compare generated outputs against committed snapshots:
 
@@ -815,11 +950,12 @@ For selected fixture themes, compare generated outputs against committed snapsho
 tests/golden/kitty/minimal.conf
 tests/golden/base16/minimal.yaml
 tests/golden/bat/minimal.tmTheme
+tests/golden/gitui/theme.ron
 ```
 
 ---
 
-# 12. Acceptance Criteria
+# 13. Acceptance Criteria
 
 The tool is acceptable when:
 
@@ -830,13 +966,14 @@ The tool is acceptable when:
 5. It exports a valid Kitty theme.
 6. It exports a Base16-like 16-color palette.
 7. It exports a valid bat `.tmTheme` theme.
-8. It emits a clear loss report.
-9. It includes unit tests and golden output tests.
-10. It does not rely on palette names as primary semantic meaning.
+8. It exports a valid gitui theme directory containing `theme.ron` and a matching `.tmTheme` syntax file.
+9. It emits a clear loss report.
+10. It includes unit tests and golden output tests.
+11. It does not rely on palette names as primary semantic meaning.
 
 ---
 
-# 13. Recommended Implementation Order
+# 14. Recommended Implementation Order
 
 Implement in this order:
 
@@ -851,14 +988,15 @@ Implement in this order:
 8. Kitty exporter
 9. CLI
 10. bat exporter
-11. Reports
-12. Batch export
-13. Golden tests
+11. gitui exporter
+12. Reports
+13. Batch export
+14. Golden tests
 ```
 
 ---
 
-# 14. Design Principle
+# 15. Design Principle
 
 The architecture should be:
 
@@ -874,7 +1012,10 @@ Derived 16-color palette
 Exporters
    ├── Kitty
    ├── Base16-like YAML
-   └── bat .tmTheme
+   ├── bat .tmTheme
+   └── gitui
+       ├── theme.ron
+       └── <resolved-theme-name>.tmTheme
 ```
 
 Never implement direct one-off conversion logic such as:
@@ -882,6 +1023,7 @@ Never implement direct one-off conversion logic such as:
 ```text
 Helix TOML → Kitty
 Helix TOML → bat
+Helix TOML → gitui
 ```
 
 Instead, always go through the semantic model.
