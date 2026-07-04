@@ -21,13 +21,19 @@
         system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
+          src = pkgs.lib.cleanSourceWith {
+            src = ./.;
+            filter =
+              path: type:
+              let
+                base = baseNameOf path;
+              in
+              !(base == ".direnv" || base == ".git" || base == "target");
+          };
           common = {
             pname = "themeforge";
             version = "0.1.0";
-            src = builtins.path {
-              path = ./.;
-              name = "themeforge-source";
-            };
+            inherit src;
             cargoHash = "sha256-r2pPZoTcOHjZKibpZ5LTflN02BfvhDnk6a6TTH5rluk=";
             nativeBuildInputs = [
               pkgs.pkg-config
