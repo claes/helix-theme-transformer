@@ -10,6 +10,7 @@ Initial targets:
 2. Semantic IR
 3. base16 palette extraction
 4. Kitty terminal theme export
+5. bat `.tmTheme` syntax highlighting theme export
 
 The core principle is:
 
@@ -518,6 +519,149 @@ color15 #ffffff
 
 ---
 
+# 8. bat Exporter
+
+Generate a Sublime Text `.tmTheme` XML property-list file for bat.
+
+bat custom syntax highlighting themes must be `.tmTheme` files. Newer `.sublime-color-scheme` files are not supported by bat for custom themes.
+
+The generated file is intended to be installed under:
+
+```bash
+$(bat --config-dir)/themes
+```
+
+After installation, users must rebuild bat's cache:
+
+```bash
+bat cache --build
+```
+
+bat uses the `.tmTheme` filename as the theme name.
+
+## 8.1 Architecture rule
+
+The bat exporter must consume semantic roles and the derived palette. It must not inspect Helix TOML scopes directly and must not implement a direct `Helix TOML → bat` conversion.
+
+The required flow is:
+
+```text
+Helix TOML
+   ↓
+Resolved Helix Theme
+   ↓
+Semantic Roles
+   ↓
+Derived 16-color palette
+   ↓
+bat .tmTheme exporter
+```
+
+## 8.2 Global settings
+
+Map global `.tmTheme` settings from semantic roles first, then Base16-like fallback colors:
+
+```text
+background    ← background or base00
+foreground    ← foreground or base05
+caret         ← cursor or base05
+selection     ← selection or base02
+lineHighlight ← surface or base01
+```
+
+## 8.3 Syntax scope settings
+
+Map semantic roles to Sublime-compatible scope selectors:
+
+```text
+comment                          ← comment
+keyword                          ← keyword
+entity.name.function             ← function
+support.function                 ← function
+storage.type                     ← type
+entity.name.type                 ← type
+variable                         ← variable
+variable.parameter               ← parameter
+string                           ← string
+constant.numeric                 ← number
+constant.language                ← constant
+constant.other                   ← constant
+keyword.operator                 ← operator
+entity.name.tag                  ← special
+support                          ← special
+variable.language                ← special
+invalid                          ← error
+```
+
+Each syntax setting should include a `foreground` color when the corresponding semantic role has a color.
+
+If a semantic role is missing, exporters should use the relevant Base16-like fallback where one exists and emit a warning when the mapping is materially degraded.
+
+## 8.4 Font styles and loss
+
+`.tmTheme` can represent some text styling but not all Helix style data.
+
+Supported mappings:
+
+```text
+bold          → fontStyle "bold"
+italic        → fontStyle "italic"
+bold+italic   → fontStyle "bold italic"
+```
+
+Unsupported or lossy Helix style data must be reported in the export report:
+
+```text
+dim
+crossed_out
+reversed
+scope background colors that are not represented in the chosen .tmTheme setting
+underline color
+underline style
+```
+
+## 8.5 Output example
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>name</key>
+  <string>my-theme</string>
+  <key>settings</key>
+  <array>
+    <dict>
+      <key>settings</key>
+      <dict>
+        <key>background</key>
+        <string>#1f2335</string>
+        <key>foreground</key>
+        <string>#c0caf5</string>
+        <key>caret</key>
+        <string>#7aa2f7</string>
+        <key>selection</key>
+        <string>#2f334d</string>
+      </dict>
+    </dict>
+    <dict>
+      <key>name</key>
+      <string>Keyword</string>
+      <key>scope</key>
+      <string>keyword</string>
+      <key>settings</key>
+      <dict>
+        <key>foreground</key>
+        <string>#bb9af7</string>
+      </dict>
+    </dict>
+  </array>
+</dict>
+</plist>
+```
+
+---
+
 # 9. Loss Report
 
 Every export should produce a report.
@@ -561,6 +705,7 @@ themeforge inspect path/to/theme.toml
 themeforge resolve path/to/theme.toml --theme-dir path/to/themes
 themeforge export kitty path/to/theme.toml --theme-dir path/to/themes --out theme.conf
 themeforge export base16 path/to/theme.toml --theme-dir path/to/themes --out theme.yaml
+themeforge export bat path/to/theme.toml --theme-dir path/to/themes --out theme.tmTheme
 themeforge batch-export kitty path/to/themes --out-dir generated/kitty
 ```
 
@@ -606,7 +751,8 @@ Test:
 5. Scope-to-role derivation
 6. Base16 extraction
 7. Kitty export
-8. Loss report generation
+8. bat `.tmTheme` export
+9. Loss report generation
 
 ## 11.2 Fixture themes
 
@@ -631,6 +777,7 @@ For selected fixture themes, compare generated outputs against committed snapsho
 ```text
 tests/golden/kitty/minimal.conf
 tests/golden/base16/minimal.yaml
+tests/golden/bat/minimal.tmTheme
 ```
 
 ---
@@ -645,9 +792,10 @@ The tool is acceptable when:
 4. It derives semantic roles from scope assignments.
 5. It exports a valid Kitty theme.
 6. It exports a Base16-like 16-color palette.
-7. It emits a clear loss report.
-8. It includes unit tests and golden output tests.
-9. It does not rely on palette names as primary semantic meaning.
+7. It exports a valid bat `.tmTheme` theme.
+8. It emits a clear loss report.
+9. It includes unit tests and golden output tests.
+10. It does not rely on palette names as primary semantic meaning.
 
 ---
 
@@ -665,9 +813,10 @@ Implement in this order:
 7. 16-color extraction
 8. Kitty exporter
 9. CLI
-10. Reports
-11. Batch export
-12. Golden tests
+10. bat exporter
+11. Reports
+12. Batch export
+13. Golden tests
 ```
 
 ---
@@ -687,13 +836,15 @@ Derived 16-color palette
    ↓
 Exporters
    ├── Kitty
-   └── Base16-like YAML
+   ├── Base16-like YAML
+   └── bat .tmTheme
 ```
 
 Never implement direct one-off conversion logic such as:
 
 ```text
 Helix TOML → Kitty
+Helix TOML → bat
 ```
 
 Instead, always go through the semantic model.
