@@ -2,12 +2,14 @@ mod base16;
 mod bat;
 mod gitui;
 mod kitty;
+mod mc;
 mod report;
 
 pub use base16::export_base16_yaml;
 pub use bat::export_bat_tmtheme;
 pub use gitui::{export_gitui, GituiTheme};
 pub use kitty::export_kitty;
+pub use mc::export_mc_skin;
 pub use report::{render_report, ExportReport};
 
 #[cfg(test)]
@@ -64,6 +66,14 @@ mod tests {
             gitui.syntax_tmtheme,
             include_str!("../../../tests/golden/bat/minimal.tmTheme")
         );
+    }
+
+    #[test]
+    fn exports_mc_golden_minimal() {
+        let (theme, roles, palette, mut warnings) = minimal_pipeline();
+        warnings.extend(theme.warnings.clone());
+        let (mc, _) = export_mc_skin(&theme, &roles, &palette, warnings);
+        assert_eq!(mc, include_str!("../../../tests/golden/mc/minimal.ini"));
     }
 
     fn minimal_pipeline() -> (

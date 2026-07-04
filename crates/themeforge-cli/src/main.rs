@@ -2,7 +2,8 @@ use anyhow::{Context, Result};
 use camino::Utf8PathBuf;
 use clap::{Parser, Subcommand};
 use exporters::{
-    export_base16_yaml, export_bat_tmtheme, export_gitui, export_kitty, render_report,
+    export_base16_yaml, export_bat_tmtheme, export_gitui, export_kitty, export_mc_skin,
+    render_report,
 };
 use helix_theme::resolve_file;
 use palette16::extract_base16;
@@ -118,7 +119,8 @@ fn main() -> Result<()> {
             };
             let (bat, bat_report) =
                 export_bat_tmtheme(&resolved, &roles, &palette, warnings.clone());
-            let gitui = export_gitui(&resolved, &roles, &palette, warnings);
+            let gitui = export_gitui(&resolved, &roles, &palette, warnings.clone());
+            let (mc, mc_report) = export_mc_skin(&resolved, &roles, &palette, warnings);
             let generated = GeneratedExports {
                 files: vec![
                     GeneratedFile {
@@ -144,8 +146,18 @@ fn main() -> Result<()> {
                         )),
                         contents: gitui.syntax_tmtheme,
                     },
+                    GeneratedFile {
+                        relative_path: Utf8PathBuf::from(format!("mc/{theme_name}.ini")),
+                        contents: mc,
+                    },
                 ],
-                reports: vec![kitty_report, base16_report, bat_report, gitui.report],
+                reports: vec![
+                    kitty_report,
+                    base16_report,
+                    bat_report,
+                    gitui.report,
+                    mc_report,
+                ],
             };
 
             if let Some(path) = report_json {
