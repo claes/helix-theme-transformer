@@ -92,28 +92,24 @@ pub fn extract_base16(roles: &SemanticRoles) -> (Base16Palette, Vec<Warning>) {
         &mut warnings,
     );
 
-    insert(&mut palette, "base00", base00);
-    insert(&mut palette, "base01", base01);
-    insert(&mut palette, "base02", base02);
-    insert(&mut palette, "base03", base03);
-    insert(&mut palette, "base04", base04);
-    insert(&mut palette, "base05", base05);
-    insert(&mut palette, "base06", base06);
-    insert(&mut palette, "base07", base07);
-    insert(&mut palette, "base08", base08);
-    insert(&mut palette, "base09", base09);
-    insert(&mut palette, "base0A", base0a);
-    insert(&mut palette, "base0B", base0b);
-    insert(&mut palette, "base0C", base0c);
-    insert(&mut palette, "base0D", base0d);
-    insert(&mut palette, "base0E", base0e);
-    insert(&mut palette, "base0F", base0f);
+    palette.insert("base00".to_owned(), base00);
+    palette.insert("base01".to_owned(), base01);
+    palette.insert("base02".to_owned(), base02);
+    palette.insert("base03".to_owned(), base03);
+    palette.insert("base04".to_owned(), base04);
+    palette.insert("base05".to_owned(), base05);
+    palette.insert("base06".to_owned(), base06);
+    palette.insert("base07".to_owned(), base07);
+    palette.insert("base08".to_owned(), base08);
+    palette.insert("base09".to_owned(), base09);
+    palette.insert("base0A".to_owned(), base0a);
+    palette.insert("base0B".to_owned(), base0b);
+    palette.insert("base0C".to_owned(), base0c);
+    palette.insert("base0D".to_owned(), base0d);
+    palette.insert("base0E".to_owned(), base0e);
+    palette.insert("base0F".to_owned(), base0f);
 
     (palette, warnings)
-}
-
-fn insert(palette: &mut Base16Palette, key: &str, color: Base16Color) {
-    palette.insert(key.to_owned(), color);
 }
 
 fn direct_or_default(
@@ -193,7 +189,7 @@ pub fn color<'a>(palette: &'a Base16Palette, key: &str) -> &'a str {
     palette
         .get(key)
         .map(|entry| entry.color.as_str())
-        .unwrap_or("#000000")
+        .expect("complete base16 palette should contain requested key")
 }
 
 pub fn compact_colors(palette: &Base16Palette) -> IndexMap<String, String> {

@@ -82,6 +82,7 @@ struct BatScopeMapping {
     scope: &'static str,
     role: Role,
     fallback_base: Option<&'static str>,
+    report_target: bool,
 }
 
 fn bat_scope_mappings() -> &'static [BatScopeMapping] {
@@ -91,102 +92,119 @@ fn bat_scope_mappings() -> &'static [BatScopeMapping] {
             scope: "comment",
             role: Role::Comment,
             fallback_base: Some("base03"),
+            report_target: true,
         },
         BatScopeMapping {
             name: "Keyword",
             scope: "keyword",
             role: Role::Keyword,
             fallback_base: Some("base0E"),
+            report_target: true,
         },
         BatScopeMapping {
             name: "Function",
             scope: "entity.name.function",
             role: Role::Function,
             fallback_base: Some("base0D"),
+            report_target: true,
         },
         BatScopeMapping {
             name: "Support Function",
             scope: "support.function",
             role: Role::Function,
             fallback_base: Some("base0D"),
+            report_target: false,
         },
         BatScopeMapping {
             name: "Storage Type",
             scope: "storage.type",
             role: Role::Type,
             fallback_base: Some("base0A"),
+            report_target: true,
         },
         BatScopeMapping {
             name: "Type",
             scope: "entity.name.type",
             role: Role::Type,
             fallback_base: Some("base0A"),
+            report_target: false,
         },
         BatScopeMapping {
             name: "Variable",
             scope: "variable",
             role: Role::Variable,
             fallback_base: Some("base05"),
+            report_target: false,
         },
         BatScopeMapping {
             name: "Parameter",
             scope: "variable.parameter",
             role: Role::Parameter,
             fallback_base: Some("base05"),
+            report_target: false,
         },
         BatScopeMapping {
             name: "String",
             scope: "string",
             role: Role::String,
             fallback_base: Some("base0B"),
+            report_target: true,
         },
         BatScopeMapping {
             name: "Number",
             scope: "constant.numeric",
             role: Role::Number,
             fallback_base: Some("base09"),
+            report_target: true,
         },
         BatScopeMapping {
             name: "Language Constant",
             scope: "constant.language",
             role: Role::Constant,
             fallback_base: Some("base09"),
+            report_target: false,
         },
         BatScopeMapping {
             name: "Other Constant",
             scope: "constant.other",
             role: Role::Constant,
             fallback_base: Some("base09"),
+            report_target: false,
         },
         BatScopeMapping {
             name: "Operator",
             scope: "keyword.operator",
             role: Role::Operator,
             fallback_base: Some("base0F"),
+            report_target: true,
         },
         BatScopeMapping {
             name: "Tag",
             scope: "entity.name.tag",
             role: Role::Special,
             fallback_base: Some("base0C"),
+            report_target: true,
         },
         BatScopeMapping {
             name: "Support",
             scope: "support",
             role: Role::Special,
             fallback_base: Some("base0C"),
+            report_target: false,
         },
         BatScopeMapping {
             name: "Language Variable",
             scope: "variable.language",
             role: Role::Special,
             fallback_base: Some("base0C"),
+            report_target: false,
         },
         BatScopeMapping {
             name: "Invalid",
             scope: "invalid",
             role: Role::Error,
             fallback_base: Some("base08"),
+            report_target: true,
         },
     ]
 }
@@ -232,20 +250,24 @@ fn bat_preserved_items(roles: &SemanticRoles) -> Vec<PreservedItem> {
         ("caret", Role::Cursor),
         ("selection", Role::Selection),
         ("lineHighlight", Role::Surface),
-        ("comment", Role::Comment),
-        ("keyword", Role::Keyword),
-        ("entity.name.function", Role::Function),
-        ("storage.type", Role::Type),
-        ("string", Role::String),
-        ("constant.numeric", Role::Number),
-        ("keyword.operator", Role::Operator),
-        ("entity.name.tag", Role::Special),
-        ("invalid", Role::Error),
     ] {
         if let Some(value) = roles.get(&role) {
             if let Some(source) = role_source(value) {
                 items.push(PreservedItem {
                     target: target.to_owned(),
+                    source,
+                });
+            }
+        }
+    }
+    for mapping in bat_scope_mappings() {
+        if !mapping.report_target {
+            continue;
+        }
+        if let Some(value) = roles.get(&mapping.role) {
+            if let Some(source) = role_source(value) {
+                items.push(PreservedItem {
+                    target: mapping.scope.to_owned(),
                     source,
                 });
             }

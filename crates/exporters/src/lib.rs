@@ -6,7 +6,7 @@ mod report;
 pub use base16::export_base16_yaml;
 pub use bat::export_bat_tmtheme;
 pub use kitty::export_kitty;
-pub use report::{dropped_items, render_report, role_source, ExportReport, PreservedItem};
+pub use report::{render_report, ExportReport};
 
 #[cfg(test)]
 mod tests {
