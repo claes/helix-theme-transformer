@@ -2,8 +2,8 @@ use anyhow::{Context, Result};
 use camino::Utf8PathBuf;
 use clap::{Parser, Subcommand};
 use exporters::{
-    export_base16_yaml, export_bat_tmtheme, export_gitui, export_kitty, export_mc_skin,
-    render_report,
+    export_base16_yaml, export_bat_tmtheme, export_dircolors, export_gitui, export_kitty,
+    export_mc_skin, render_report,
 };
 use helix_theme::resolve_file;
 use palette16::extract_base16;
@@ -120,7 +120,9 @@ fn main() -> Result<()> {
             let (bat, bat_report) =
                 export_bat_tmtheme(&resolved, &roles, &palette, warnings.clone());
             let gitui = export_gitui(&resolved, &roles, &palette, warnings.clone());
-            let (mc, mc_report) = export_mc_skin(&resolved, &roles, &palette, warnings);
+            let (mc, mc_report) = export_mc_skin(&resolved, &roles, &palette, warnings.clone());
+            let (dircolors, dircolors_report) =
+                export_dircolors(&resolved, &roles, &palette, warnings);
             let generated = GeneratedExports {
                 files: vec![
                     GeneratedFile {
@@ -150,6 +152,12 @@ fn main() -> Result<()> {
                         relative_path: Utf8PathBuf::from(format!("mc/{theme_name}.ini")),
                         contents: mc,
                     },
+                    GeneratedFile {
+                        relative_path: Utf8PathBuf::from(format!(
+                            "dircolors/{theme_name}.dircolors"
+                        )),
+                        contents: dircolors,
+                    },
                 ],
                 reports: vec![
                     kitty_report,
@@ -157,6 +165,7 @@ fn main() -> Result<()> {
                     bat_report,
                     gitui.report,
                     mc_report,
+                    dircolors_report,
                 ],
             };
 

@@ -1,5 +1,6 @@
 mod base16;
 mod bat;
+mod dircolors;
 mod gitui;
 mod kitty;
 mod mc;
@@ -7,6 +8,7 @@ mod report;
 
 pub use base16::export_base16_yaml;
 pub use bat::export_bat_tmtheme;
+pub use dircolors::export_dircolors;
 pub use gitui::{export_gitui, GituiTheme};
 pub use kitty::export_kitty;
 pub use mc::export_mc_skin;
@@ -74,6 +76,17 @@ mod tests {
         warnings.extend(theme.warnings.clone());
         let (mc, _) = export_mc_skin(&theme, &roles, &palette, warnings);
         assert_eq!(mc, include_str!("../../../tests/golden/mc/minimal.ini"));
+    }
+
+    #[test]
+    fn exports_dircolors_golden_minimal() {
+        let (theme, roles, palette, mut warnings) = minimal_pipeline();
+        warnings.extend(theme.warnings.clone());
+        let (dircolors, _) = export_dircolors(&theme, &roles, &palette, warnings);
+        assert_eq!(
+            dircolors,
+            include_str!("../../../tests/golden/dircolors/minimal.dircolors")
+        );
     }
 
     fn minimal_pipeline() -> (
