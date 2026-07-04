@@ -81,7 +81,7 @@ Inherited theme names are resolved by searching theme directories in priority or
 For single-theme commands, `--theme-dir` is optional and repeatable:
 
 ```bash
-themeforge export kitty path/to/theme.toml --theme-dir user/themes --theme-dir builtin/themes
+themeforge export path/to/theme.toml --out-dir generated --theme-dir user/themes --theme-dir builtin/themes
 ```
 
 If no `--theme-dir` is provided, use the input theme file's parent directory as the only theme search directory.
@@ -812,19 +812,19 @@ Example:
 
 ## 9.4 CLI output behavior
 
-For gitui exports, `--out-dir` is required and identifies the parent output directory.
+The single export command always generates gitui output along with every other supported format.
 
 Example:
 
 ```bash
-themeforge export gitui path/to/theme.toml --out-dir ~/.config
+themeforge export path/to/theme.toml --out-dir generated
 ```
 
 This creates:
 
 ```text
-~/.config/gitui/theme.ron
-~/.config/gitui/<resolved-theme-name>.tmTheme
+generated/gitui/theme.ron
+generated/gitui/<resolved-theme-name>.tmTheme
 ```
 
 The gitui exporter must not require individual output file options for the RON or `.tmTheme` files.
@@ -873,11 +873,20 @@ Suggested commands:
 themeforge inspect path/to/theme.toml
 themeforge resolve path/to/theme.toml
 themeforge resolve path/to/theme.toml --theme-dir user/themes --theme-dir builtin/themes
-themeforge export kitty path/to/theme.toml --out theme.conf
-themeforge export base16 path/to/theme.toml --out theme.yaml
-themeforge export bat path/to/theme.toml --out theme.tmTheme
-themeforge export gitui path/to/theme.toml --out-dir ~/.config
-themeforge batch-export kitty path/to/themes --out-dir generated/kitty
+themeforge export path/to/theme.toml --out-dir generated
+```
+
+The export command always generates all supported formats. It never writes exported theme files to stdout.
+
+The output directory layout is:
+
+```text
+generated/
+  kitty/<resolved-theme-name>.conf
+  base16/<resolved-theme-name>.yaml
+  bat/<resolved-theme-name>.tmTheme
+  gitui/theme.ron
+  gitui/<resolved-theme-name>.tmTheme
 ```
 
 ## 11.1 Inheritance lookup
@@ -898,7 +907,7 @@ When omitted, inherited theme names are searched in the input theme file's paren
   Print human-readable loss report.
 
 --report-json path
-  Write machine-readable report.
+  Write a machine-readable array of export reports.
 
 --pretty
   Pretty-print JSON/TOML output.

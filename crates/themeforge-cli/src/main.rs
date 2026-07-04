@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use camino::Utf8PathBuf;
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{Parser, Subcommand};
 use exporters::{
     export_base16_yaml, export_bat_tmtheme, export_gitui, export_kitty, render_report,
 };
@@ -40,21 +40,16 @@ enum Command {
         #[arg(long)]
         pretty: bool,
     },
-    /// Export a Helix theme through semantic roles into a target format.
+    /// Export a Helix theme through semantic roles into all supported formats.
     Export {
-        /// Export format to generate.
-        target: Target,
         /// Path to the Helix theme TOML file to export.
         theme: Utf8PathBuf,
         /// Directory used to resolve inherited Helix themes; may be repeated.
         #[arg(long = "theme-dir")]
         theme_dirs: Vec<Utf8PathBuf>,
-        /// File path to write the exported theme; stdout is used when omitted.
-        #[arg(long)]
-        out: Option<Utf8PathBuf>,
-        /// Directory to receive generated output directories for multi-file exporters.
+        /// Directory to receive generated output directories.
         #[arg(long = "out-dir")]
-        out_dir: Option<Utf8PathBuf>,
+        out_dir: Utf8PathBuf,
         /// Treat parser, resolver, role, and palette warnings as errors.
         #[arg(long)]
         strict: bool,
@@ -68,18 +63,6 @@ enum Command {
         #[arg(long)]
         dry_run: bool,
     },
-}
-
-#[derive(Debug, Clone, Copy, ValueEnum)]
-enum Target {
-    /// Generate a Kitty terminal .conf theme.
-    Kitty,
-    /// Generate a Base16-like YAML palette.
-    Base16,
-    /// Generate a bat-compatible Sublime .tmTheme file.
-    Bat,
-    /// Generate a gitui theme directory containing theme.ron and a .tmTheme file.
-    Gitui,
 }
 
 fn main() -> Result<()> {
@@ -104,10 +87,8 @@ fn main() -> Result<()> {
             print_json(&resolved, pretty)?;
         }
         Command::Export {
-            target,
             theme,
             theme_dirs,
-            out,
             out_dir,
             strict,
             report,
@@ -124,72 +105,68 @@ fn main() -> Result<()> {
             if strict && !warnings.is_empty() {
                 anyhow::bail!("strict mode failed with {} warning(s)", warnings.len());
             }
-            if !matches!(target, Target::Gitui) && out_dir.is_some() {
-                anyhow::bail!("--out-dir is only supported for gitui export");
-            }
 
-            let export = match target {
-                Target::Kitty => {
-                    ExportOutput::SingleFile(export_kitty(&resolved, &roles, &palette, warnings))
-                }
-                Target::Bat => ExportOutput::SingleFile(export_bat_tmtheme(
-                    &resolved, &roles, &palette, warnings,
-                )),
-                Target::Base16 => {
-                    let output = export_base16_yaml(&palette)?;
-                    let report = exporters::ExportReport {
-                        exporter: "base16".to_owned(),
-                        source: resolved.source_path.to_string(),
-                        preserved: Vec::new(),
-                        dropped: Vec::new(),
-                        warnings,
-                    };
-                    ExportOutput::SingleFile((output, report))
-                }
-                Target::Gitui => {
-                    if out.is_some() {
-                        anyhow::bail!("gitui export uses --out-dir instead of --out");
-                    }
-                    let out_dir = out_dir
-                        .as_ref()
-                        .context("gitui export requires --out-dir")?;
-                    ExportOutput::Gitui {
-                        parent_dir: out_dir.clone(),
-                        theme: export_gitui(&resolved, &roles, &palette, warnings),
-                    }
-                }
+            let theme_name = file_stem(&resolved.name);
+            let (kitty, kitty_report) = export_kitty(&resolved, &roles, &palette, warnings.clone());
+            let base16 = export_base16_yaml(&palette)?;
+            let base16_report = exporters::ExportReport {
+                exporter: "base16".to_owned(),
+                source: resolved.source_path.to_string(),
+                preserved: Vec::new(),
+                dropped: Vec::new(),
+                warnings: warnings.clone(),
             };
-            let export_report = export.report();
+            let (bat, bat_report) =
+                export_bat_tmtheme(&resolved, &roles, &palette, warnings.clone());
+            let gitui = export_gitui(&resolved, &roles, &palette, warnings);
+            let generated = GeneratedExports {
+                files: vec![
+                    GeneratedFile {
+                        relative_path: Utf8PathBuf::from(format!("kitty/{theme_name}.conf")),
+                        contents: kitty,
+                    },
+                    GeneratedFile {
+                        relative_path: Utf8PathBuf::from(format!("base16/{theme_name}.yaml")),
+                        contents: base16,
+                    },
+                    GeneratedFile {
+                        relative_path: Utf8PathBuf::from(format!("bat/{theme_name}.tmTheme")),
+                        contents: bat,
+                    },
+                    GeneratedFile {
+                        relative_path: Utf8PathBuf::from("gitui/theme.ron"),
+                        contents: gitui.theme_ron,
+                    },
+                    GeneratedFile {
+                        relative_path: Utf8PathBuf::from(format!(
+                            "gitui/{}",
+                            gitui.syntax_file_name
+                        )),
+                        contents: gitui.syntax_tmtheme,
+                    },
+                ],
+                reports: vec![kitty_report, base16_report, bat_report, gitui.report],
+            };
 
             if let Some(path) = report_json {
-                let json = serde_json::to_string_pretty(export_report)?;
+                let json = serde_json::to_string_pretty(&generated.reports)?;
                 std::fs::write(&path, json)
                     .with_context(|| format!("failed to write report JSON to {path}"))?;
             }
             if report {
-                eprintln!("{}", render_report(export_report));
+                for export_report in &generated.reports {
+                    eprintln!("{}", render_report(export_report));
+                }
             }
             if !dry_run {
-                match export {
-                    ExportOutput::SingleFile((output, _)) => {
-                        if let Some(path) = out {
-                            std::fs::write(&path, output)
-                                .with_context(|| format!("failed to write export to {path}"))?;
-                        } else {
-                            print!("{output}");
-                        }
+                for export in generated.files {
+                    let path = out_dir.join(&export.relative_path);
+                    if let Some(parent) = path.parent() {
+                        std::fs::create_dir_all(parent)
+                            .with_context(|| format!("failed to create {parent}"))?;
                     }
-                    ExportOutput::Gitui { parent_dir, theme } => {
-                        let gitui_dir = parent_dir.join("gitui");
-                        std::fs::create_dir_all(&gitui_dir)
-                            .with_context(|| format!("failed to create {gitui_dir}"))?;
-                        let theme_path = gitui_dir.join("theme.ron");
-                        std::fs::write(&theme_path, theme.theme_ron)
-                            .with_context(|| format!("failed to write {theme_path}"))?;
-                        let syntax_path = gitui_dir.join(theme.syntax_file_name);
-                        std::fs::write(&syntax_path, theme.syntax_tmtheme)
-                            .with_context(|| format!("failed to write {syntax_path}"))?;
-                    }
+                    std::fs::write(&path, export.contents)
+                        .with_context(|| format!("failed to write {path}"))?;
                 }
             }
         }
@@ -197,20 +174,31 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-enum ExportOutput {
-    SingleFile((String, exporters::ExportReport)),
-    Gitui {
-        parent_dir: Utf8PathBuf,
-        theme: exporters::GituiTheme,
-    },
+struct GeneratedExports {
+    files: Vec<GeneratedFile>,
+    reports: Vec<exporters::ExportReport>,
 }
 
-impl ExportOutput {
-    fn report(&self) -> &exporters::ExportReport {
-        match self {
-            ExportOutput::SingleFile((_, report)) => report,
-            ExportOutput::Gitui { theme, .. } => &theme.report,
-        }
+struct GeneratedFile {
+    relative_path: Utf8PathBuf,
+    contents: String,
+}
+
+fn file_stem(name: &str) -> String {
+    let sanitized: String = name
+        .chars()
+        .map(|ch| {
+            if ch.is_ascii_alphanumeric() || ch == '-' || ch == '_' {
+                ch
+            } else {
+                '-'
+            }
+        })
+        .collect();
+    if sanitized.is_empty() {
+        "theme".to_owned()
+    } else {
+        sanitized
     }
 }
 
