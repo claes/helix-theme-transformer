@@ -6,6 +6,7 @@ mod gitui;
 mod kitty;
 mod mc;
 mod report;
+mod yazi;
 
 use palette16::Base16Palette;
 use semantic_roles::SemanticRoles;
@@ -18,6 +19,7 @@ pub use gitui::{export_gitui, GituiTheme};
 pub use kitty::export_kitty;
 pub use mc::{export_mc, export_mc_skin, McExport};
 pub use report::{render_report, ExportReport};
+pub use yazi::export_yazi;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExportedFile {
@@ -134,6 +136,16 @@ pub fn export_dircolors_format(
     single_file_format(format!("dircolors/{file_name}.dircolors"), contents, report)
 }
 
+pub fn export_yazi_format(
+    theme: &ResolvedTheme,
+    roles: &SemanticRoles,
+    palette: &Base16Palette,
+    warnings: Vec<Warning>,
+) -> ExportedFormat {
+    let (contents, report) = export_yazi(theme, roles, palette, warnings);
+    single_file_format("yazi/theme.toml".to_owned(), contents, report)
+}
+
 fn single_file_format(
     relative_path: String,
     contents: String,
@@ -231,6 +243,17 @@ mod tests {
         assert_eq!(
             dircolors,
             include_str!("../../../tests/golden/dircolors/minimal.dircolors")
+        );
+    }
+
+    #[test]
+    fn exports_yazi_golden_minimal() {
+        let (theme, roles, palette, mut warnings) = minimal_pipeline();
+        warnings.extend(theme.warnings.clone());
+        let (yazi, _) = export_yazi(&theme, &roles, &palette, warnings);
+        assert_eq!(
+            yazi,
+            include_str!("../../../tests/golden/yazi/minimal.toml")
         );
     }
 

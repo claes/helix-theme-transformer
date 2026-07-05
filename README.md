@@ -10,6 +10,7 @@ Supported exports:
 - GitUI
 - Midnight Commander
 - dircolors
+- Yazi
 
 Since Helix themes are targetting language syntax features rather than specific
 base colors, when converting to a theme format that is centered on colors,

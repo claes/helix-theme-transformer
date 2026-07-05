@@ -1,0 +1,223 @@
+# Generated from Helix theme: minimal
+
+[app]
+overall = { bg = "#1f2335" }
+
+[mgr]
+cwd = { fg = "#7dcfff", bold = true }
+find_keyword = { fg = "#e0af68", bold = true }
+find_position = { fg = "#7dcfff" }
+symlink_target = { fg = "#7dcfff" }
+marker_copied = { fg = "#9ece6a" }
+marker_cut = { fg = "#f7768e" }
+marker_marked = { fg = "#bb9af7", bold = true }
+marker_selected = { fg = "#7dcfff", bold = true }
+count_copied = { fg = "#9ece6a", bold = true }
+count_cut = { fg = "#f7768e", bold = true }
+count_selected = { fg = "#7dcfff", bold = true }
+border_style = { fg = "#565f89" }
+
+[indicator]
+parent = { fg = "#565f89", bg = "#292e42" }
+current = { fg = "#b8c2eb", bg = "#3b4261", bold = true }
+preview = { fg = "#565f89", bg = "#292e42" }
+
+[tabs]
+active = { fg = "#b8c2eb", bg = "#3b4261", bold = true }
+inactive = { fg = "#565f89", bg = "#292e42" }
+
+[mode]
+normal_main = { fg = "#1f2335", bg = "#7dcfff", bold = true }
+normal_alt = { fg = "#7dcfff", bg = "#292e42" }
+select_main = { fg = "#1f2335", bg = "#bb9af7", bold = true }
+select_alt = { fg = "#bb9af7", bg = "#292e42" }
+unset_main = { fg = "#1f2335", bg = "#565f89", bold = true }
+unset_alt = { fg = "#565f89", bg = "#292e42" }
+
+[status]
+overall = { fg = "#c0caf5", bg = "#292e42" }
+perm_type = { fg = "#7dcfff", bold = true }
+perm_read = { fg = "#9ece6a" }
+perm_write = { fg = "#e0af68" }
+perm_exec = { fg = "#bb9af7", bold = true }
+perm_sep = { fg = "#565f89" }
+progress_label = { fg = "#c0caf5" }
+progress_normal = { fg = "#7dcfff", bg = "#292e42" }
+progress_error = { fg = "#f7768e", bg = "#292e42", bold = true }
+
+[which]
+mask = { fg = "#565f89", bg = "#1f2335" }
+cand = { fg = "#7dcfff", bold = true }
+rest = { fg = "#c0caf5" }
+desc = { fg = "#565f89" }
+separator_style = { fg = "#565f89" }
+
+[confirm]
+border = { fg = "#7dcfff" }
+title = { fg = "#b8c2eb", bold = true }
+body = { fg = "#c0caf5" }
+list = { fg = "#c0caf5" }
+btn_yes = { fg = "#1f2335", bg = "#9ece6a", bold = true }
+btn_no = { fg = "#1f2335", bg = "#f7768e", bold = true }
+
+[spot]
+border = { fg = "#7dcfff" }
+title = { fg = "#b8c2eb", bold = true }
+tbl_col = { fg = "#b8c2eb", bg = "#3b4261", bold = true }
+tbl_cell = { fg = "#c0caf5", bg = "#292e42" }
+
+[notify]
+title_info = { fg = "#7dcfff", bold = true }
+title_warn = { fg = "#e0af68", bold = true }
+title_error = { fg = "#f7768e", bold = true }
+
+[pick]
+border = { fg = "#7dcfff" }
+active = { fg = "#b8c2eb", bg = "#3b4261", bold = true }
+inactive = { fg = "#c0caf5" }
+
+[input]
+border = { fg = "#7dcfff" }
+title = { fg = "#b8c2eb", bold = true }
+value = { fg = "#c0caf5" }
+selected = { fg = "#b8c2eb", bg = "#3b4261" }
+
+[cmp]
+border = { fg = "#7dcfff" }
+active = { fg = "#b8c2eb", bg = "#3b4261", bold = true }
+inactive = { fg = "#c0caf5" }
+
+[tasks]
+border = { fg = "#7dcfff" }
+title = { fg = "#b8c2eb", bold = true }
+hovered = { fg = "#b8c2eb", bg = "#3b4261" }
+
+[help]
+on = { fg = "#7dcfff", bold = true }
+run = { fg = "#9ece6a" }
+desc = { fg = "#c0caf5" }
+hovered = { fg = "#b8c2eb", bg = "#3b4261" }
+footer = { fg = "#565f89", italic = true }
+
+[filetype]
+rules = [
+  { url = "*", is = "orphan", fg = "#f7768e", bold = true },
+  { url = "*", is = "link", fg = "#7dcfff", bold = true },
+  { url = "*", is = "exec", fg = "#9ece6a", bold = true },
+  { url = "*", is = "fifo", fg = "#e0af68" },
+  { url = "*", is = "sock", fg = "#bb9af7", bold = true },
+  { url = "*", is = "block", fg = "#e0af68", bold = true },
+  { url = "*", is = "char", fg = "#e0af68", bold = true },
+  { url = "*", is = "sticky", fg = "#7dcfff", reversed = true },
+  { url = "*.7z", fg = "#ff9e64" },
+  { url = "*.ace", fg = "#ff9e64" },
+  { url = "*.alz", fg = "#ff9e64" },
+  { url = "*.apk", fg = "#ff9e64" },
+  { url = "*.arc", fg = "#ff9e64" },
+  { url = "*.arj", fg = "#ff9e64" },
+  { url = "*.bz", fg = "#ff9e64" },
+  { url = "*.bz2", fg = "#ff9e64" },
+  { url = "*.cab", fg = "#ff9e64" },
+  { url = "*.cpio", fg = "#ff9e64" },
+  { url = "*.crate", fg = "#ff9e64" },
+  { url = "*.deb", fg = "#ff9e64" },
+  { url = "*.gz", fg = "#ff9e64" },
+  { url = "*.jar", fg = "#ff9e64" },
+  { url = "*.lha", fg = "#ff9e64" },
+  { url = "*.lrz", fg = "#ff9e64" },
+  { url = "*.lz", fg = "#ff9e64" },
+  { url = "*.lz4", fg = "#ff9e64" },
+  { url = "*.lzma", fg = "#ff9e64" },
+  { url = "*.lzo", fg = "#ff9e64" },
+  { url = "*.rar", fg = "#ff9e64" },
+  { url = "*.rpm", fg = "#ff9e64" },
+  { url = "*.tar", fg = "#ff9e64" },
+  { url = "*.tbz", fg = "#ff9e64" },
+  { url = "*.tbz2", fg = "#ff9e64" },
+  { url = "*.tgz", fg = "#ff9e64" },
+  { url = "*.tlz", fg = "#ff9e64" },
+  { url = "*.txz", fg = "#ff9e64" },
+  { url = "*.xz", fg = "#ff9e64" },
+  { url = "*.zip", fg = "#ff9e64" },
+  { url = "*.zst", fg = "#ff9e64" },
+  { url = "*.avif", fg = "#bb9af7", bold = true },
+  { url = "*.bmp", fg = "#bb9af7", bold = true },
+  { url = "*.gif", fg = "#bb9af7", bold = true },
+  { url = "*.jpeg", fg = "#bb9af7", bold = true },
+  { url = "*.jpg", fg = "#bb9af7", bold = true },
+  { url = "*.jxl", fg = "#bb9af7", bold = true },
+  { url = "*.mkv", fg = "#bb9af7", bold = true },
+  { url = "*.mov", fg = "#bb9af7", bold = true },
+  { url = "*.mp4", fg = "#bb9af7", bold = true },
+  { url = "*.mpeg", fg = "#bb9af7", bold = true },
+  { url = "*.mpg", fg = "#bb9af7", bold = true },
+  { url = "*.png", fg = "#bb9af7", bold = true },
+  { url = "*.svg", fg = "#bb9af7", bold = true },
+  { url = "*.svgz", fg = "#bb9af7", bold = true },
+  { url = "*.tif", fg = "#bb9af7", bold = true },
+  { url = "*.tiff", fg = "#bb9af7", bold = true },
+  { url = "*.webm", fg = "#bb9af7", bold = true },
+  { url = "*.webp", fg = "#bb9af7", bold = true },
+  { url = "*.aac", fg = "#7dcfff" },
+  { url = "*.flac", fg = "#7dcfff" },
+  { url = "*.m4a", fg = "#7dcfff" },
+  { url = "*.mid", fg = "#7dcfff" },
+  { url = "*.midi", fg = "#7dcfff" },
+  { url = "*.mp3", fg = "#7dcfff" },
+  { url = "*.ogg", fg = "#7dcfff" },
+  { url = "*.opus", fg = "#7dcfff" },
+  { url = "*.wav", fg = "#7dcfff" },
+  { url = "*.djvu", fg = "#9ece6a" },
+  { url = "*.doc", fg = "#9ece6a" },
+  { url = "*.docx", fg = "#9ece6a" },
+  { url = "*.epub", fg = "#9ece6a" },
+  { url = "*.md", fg = "#9ece6a" },
+  { url = "*.odf", fg = "#9ece6a" },
+  { url = "*.odt", fg = "#9ece6a" },
+  { url = "*.pdf", fg = "#9ece6a" },
+  { url = "*.rtf", fg = "#9ece6a" },
+  { url = "*.tex", fg = "#9ece6a" },
+  { url = "*.txt", fg = "#9ece6a" },
+  { url = "*.c", fg = "#bb9af7" },
+  { url = "*.cc", fg = "#bb9af7" },
+  { url = "*.clj", fg = "#bb9af7" },
+  { url = "*.cpp", fg = "#bb9af7" },
+  { url = "*.cs", fg = "#bb9af7" },
+  { url = "*.css", fg = "#bb9af7" },
+  { url = "*.go", fg = "#bb9af7" },
+  { url = "*.h", fg = "#bb9af7" },
+  { url = "*.hpp", fg = "#bb9af7" },
+  { url = "*.html", fg = "#bb9af7" },
+  { url = "*.java", fg = "#bb9af7" },
+  { url = "*.js", fg = "#bb9af7" },
+  { url = "*.jsx", fg = "#bb9af7" },
+  { url = "*.lua", fg = "#bb9af7" },
+  { url = "*.nix", fg = "#bb9af7" },
+  { url = "*.php", fg = "#bb9af7" },
+  { url = "*.py", fg = "#bb9af7" },
+  { url = "*.rb", fg = "#bb9af7" },
+  { url = "*.rs", fg = "#bb9af7" },
+  { url = "*.scss", fg = "#bb9af7" },
+  { url = "*.sh", fg = "#bb9af7" },
+  { url = "*.toml", fg = "#bb9af7" },
+  { url = "*.ts", fg = "#bb9af7" },
+  { url = "*.tsx", fg = "#bb9af7" },
+  { url = "*.vim", fg = "#bb9af7" },
+  { url = "*.zig", fg = "#bb9af7" },
+  { url = "*.bak", fg = "#565f89", dim = true },
+  { url = "*.cache", fg = "#565f89", dim = true },
+  { url = "*.log", fg = "#565f89", dim = true },
+  { url = "*.old", fg = "#565f89", dim = true },
+  { url = "*.orig", fg = "#565f89", dim = true },
+  { url = "*.tmp", fg = "#565f89", dim = true },
+  { url = "*.dat", fg = "#e0af68" },
+  { url = "*.db", fg = "#e0af68" },
+  { url = "*.dbf", fg = "#e0af68" },
+  { url = "*.mdb", fg = "#e0af68" },
+  { url = "*.pgsql", fg = "#e0af68" },
+  { url = "*.sql", fg = "#e0af68" },
+  { url = "*.sqlite", fg = "#e0af68" },
+  { url = "*.sqlite3", fg = "#e0af68" },
+  { url = "*/", fg = "#7aa2f7", bold = true },
+  { url = "*", fg = "#c0caf5" },
+]
