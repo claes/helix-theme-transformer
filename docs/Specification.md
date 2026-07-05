@@ -1371,6 +1371,26 @@ tests/golden/mc/minimal.ini
 tests/golden/dircolors/minimal.dircolors
 ```
 
+## 15.4 Interactive tool test scripts
+
+Every exporter for an interactive tool must include a matching tool test script under:
+
+```text
+scripts/tool-test-scripts/
+```
+
+The script must accept a generated theme name as its first argument:
+
+```bash
+./scripts/tool-test-scripts/<tool>.sh adwaita-dark
+```
+
+It should invoke the target tool with the generated theme files from `generated-themes/<theme>/...` and show a useful interactive or visual sample for tuning the exporter output.
+
+When the target tool requires configuration files or cache files, the script should prefer temporary isolated config/cache directories instead of mutating the user's real configuration.
+
+Exporters for non-interactive data formats, such as Base16 YAML, do not require a tool test script unless a practical visual preview tool is added.
+
 ---
 
 # 16. Acceptance Criteria
@@ -1391,6 +1411,7 @@ The tool is acceptable when:
 12. It includes unit tests and golden output tests.
 13. It does not rely on palette names as primary semantic meaning.
 14. It can generate release artifacts containing `generated-themes.zip` and a parseable `generated-themes.nix` for NixOS/Home Manager consumption.
+15. Every interactive tool exporter has a matching script in `scripts/tool-test-scripts/` for locally previewing and tuning generated themes.
 
 ---
 
@@ -1416,6 +1437,7 @@ Implement in this order:
 15. Batch export
 16. Release Nix artifact generation
 17. Golden tests
+18. Interactive tool test scripts
 ```
 
 ---
