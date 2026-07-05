@@ -1,0 +1,64 @@
+name: Generate themes
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo build output
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Generate theme files
+        run: make generate-themes
+
+      - name: Package generated themes
+        run: zip -r generated-themes.zip generated-themes
+
+      - name: Upload generated themes artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-themes
+          path: generated-themes.zip
+
+      - name: Install ORAS
+        uses: oras-project/setup-oras@v1
+
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ github.token }}" | oras login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Publish generated themes to GitHub Packages
+        env:
+          OCI_ARTIFACT_TYPE: application/vnd.helix-theme-transformer.generated-themes.v1+zip
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY,,}/generated-themes"
+          version="${GITHUB_REF_NAME//\//-}"
+
+          oras push \
+            "$image:sha-${GITHUB_SHA}" \
+            --artifact-type "$OCI_ARTIFACT_TYPE" \
+            generated-themes.zip:application/zip
+
+          oras tag "$image:sha-${GITHUB_SHA}" "$version"
+
+          if [[ "$GITHUB_REF_TYPE" == "branch" && "$GITHUB_REF_NAME" == "$GITHUB_DEFAULT_BRANCH" ]]; then
+            oras tag "$image:sha-${GITHUB_SHA}" latest
+          fi
