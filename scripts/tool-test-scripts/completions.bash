@@ -39,6 +39,7 @@ _htt_tool_test_register_completion "scripts/tool-test-scripts/bat.sh"
 _htt_tool_test_register_completion "scripts/tool-test-scripts/gitui.sh"
 _htt_tool_test_register_completion "scripts/tool-test-scripts/mc.sh"
 _htt_tool_test_register_completion "scripts/tool-test-scripts/dircolors.sh"
+_htt_tool_test_register_completion "scripts/tool-test-scripts/yazi.sh"
 _htt_tool_test_register_completion "scripts/tool-test-scripts/helix.sh"
 
 unset -f _htt_tool_test_register_completion

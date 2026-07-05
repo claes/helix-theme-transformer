@@ -3,7 +3,7 @@ use camino::Utf8PathBuf;
 use clap::{Parser, Subcommand};
 use exporters::{
     export_base16_format, export_bat_format, export_dircolors_format, export_gitui_format,
-    export_kitty_format, export_mc_format, render_report,
+    export_kitty_format, export_mc_format, export_yazi_format, render_report,
 };
 use helix_theme::resolve_file;
 use palette16::extract_base16;
@@ -115,7 +115,8 @@ fn main() -> Result<()> {
                 export_bat_format(&theme_name, &resolved, &roles, &palette, warnings.clone()),
                 export_gitui_format(&resolved, &roles, &palette, warnings.clone()),
                 export_mc_format(&theme_name, &resolved, &roles, &palette, warnings.clone()),
-                export_dircolors_format(&theme_name, &resolved, &roles, &palette, warnings),
+                export_dircolors_format(&theme_name, &resolved, &roles, &palette, warnings.clone()),
+                export_yazi_format(&resolved, &roles, &palette, warnings),
             ];
             let generated = GeneratedExports::from_formats(formats);
 

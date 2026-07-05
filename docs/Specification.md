@@ -14,6 +14,7 @@ Initial targets:
 6. gitui `theme.ron` and `.tmTheme` export
 7. Midnight Commander skin export
 8. GNU `dircolors` database export
+9. Yazi `theme.toml` export
 
 The core principle is:
 
@@ -1235,7 +1236,31 @@ The dircolors exporter should report:
 
 ---
 
-# 13. Loss Report
+# 13. Yazi Exporter
+
+Generate a Yazi direct theme file:
+
+```text
+<out-dir>/<theme-file-name>/yazi/theme.toml
+```
+
+The Yazi exporter must consume semantic roles and the derived palette. It must not inspect Helix TOML scopes directly and must not implement a direct `Helix TOML -> Yazi` conversion.
+
+The generated file is a Yazi `theme.toml`, not a flavor directory. It should style core UI sections such as `[app]`, `[mgr]`, `[mode]`, `[status]`, `[tabs]`, dialogs, notifications, completion, tasks, help, and `[filetype]`.
+
+`[filetype].rules` must reuse the shared `FileKind` mapping so equivalent file classes and extension groups stay consistent with `dircolors`, Midnight Commander, and gitui.
+
+Yazi syntax preview theming is out of scope for the direct `theme.toml` exporter. A future flavor exporter may generate `flavor.toml` and `tmtheme.xml`.
+
+The Yazi exporter should report:
+
+1. Which semantic roles were preserved in Yazi fields.
+2. Which file kind mappings were used.
+3. That flavor metadata and syntax preview theming were not generated.
+
+---
+
+# 14. Loss Report
 
 Every export should produce a report.
 
@@ -1269,7 +1294,7 @@ Provide reports as:
 
 ---
 
-# 14. CLI
+# 15. CLI
 
 Suggested commands:
 
@@ -1300,6 +1325,7 @@ generated/
     mc/filehighlight.ini
     mc/colortable.env
     dircolors/<resolved-theme-name>.dircolors
+    yazi/theme.toml
 ```
 
 ## 14.1 Inheritance lookup
@@ -1356,6 +1382,7 @@ generated-themes/
     mc/filehighlight.ini
     mc/colortable.env
     dircolors/<resolved-theme-name>.dircolors
+    yazi/theme.toml
     helix/<theme-file-name>.toml
 ```
 
@@ -1389,6 +1416,9 @@ Example:
       },
       "dircolors": {
         "theme": "adwaita-dark/dircolors/adwaita-dark.dircolors"
+      },
+      "yazi": {
+        "theme": "adwaita-dark/yazi/theme.toml"
       },
       "helix": {
         "theme": "adwaita-dark/helix/adwaita-dark.toml"
@@ -1476,7 +1506,8 @@ Test:
 9. gitui `theme.ron` export
 10. Midnight Commander skin export
 11. GNU `dircolors` export
-12. Loss report generation
+12. Yazi `theme.toml` export
+13. Loss report generation
 
 ## 16.2 Fixture themes
 
@@ -1507,6 +1538,7 @@ tests/golden/mc/minimal.ini
 tests/golden/mc/filehighlight.ini
 tests/golden/mc/colortable.env
 tests/golden/dircolors/minimal.dircolors
+tests/golden/yazi/minimal.toml
 ```
 
 ## 16.4 Interactive tool test scripts
@@ -1545,12 +1577,13 @@ The tool is acceptable when:
 8. It exports a valid gitui theme directory containing `theme.ron` and a matching `.tmTheme` syntax file.
 9. It exports valid Midnight Commander skin, file highlighting, and color table files.
 10. It exports a valid GNU `dircolors` database for LS_COLORS.
-11. It emits a clear loss report.
-12. It includes unit tests and golden output tests.
-13. It does not rely on palette names as primary semantic meaning.
-14. It can generate release artifacts containing `generated-themes.zip` and a parseable `generated-themes.nix` for NixOS/Home Manager consumption.
-15. Every interactive tool exporter has a matching script in `scripts/tool-test-scripts/` for locally previewing and tuning generated themes.
-16. File-oriented exporters share the same `FileKind` style mapping for equivalent file types and statuses.
+11. It exports a valid Yazi `theme.toml`.
+12. It emits a clear loss report.
+13. It includes unit tests and golden output tests.
+14. It does not rely on palette names as primary semantic meaning.
+15. It can generate release artifacts containing `generated-themes.zip` and a parseable `generated-themes.nix` for NixOS/Home Manager consumption.
+16. Every interactive tool exporter has a matching script in `scripts/tool-test-scripts/` for locally previewing and tuning generated themes.
+17. File-oriented exporters share the same `FileKind` style mapping for equivalent file types and statuses.
 
 ---
 
@@ -1573,11 +1606,12 @@ Implement in this order:
 12. gitui exporter
 13. Midnight Commander exporter
 14. dircolors exporter
-15. Reports
-16. Batch export
-17. Release Nix artifact generation
-18. Golden tests
-19. Interactive tool test scripts
+15. Yazi exporter
+16. Reports
+17. Batch export
+18. Release Nix artifact generation
+19. Golden tests
+20. Interactive tool test scripts
 ```
 
 ---
@@ -1603,7 +1637,8 @@ Exporters
    │   ├── theme.ron
    │   └── <resolved-theme-name>.tmTheme
    ├── Midnight Commander skin
-   └── dircolors
+   ├── dircolors
+   └── yazi theme.toml
 ```
 
 Never implement direct one-off conversion logic such as:
@@ -1614,6 +1649,7 @@ Helix TOML → bat
 Helix TOML → gitui
 Helix TOML → Midnight Commander
 Helix TOML → dircolors
+Helix TOML → Yazi
 ```
 
 Instead, always go through the semantic model.
