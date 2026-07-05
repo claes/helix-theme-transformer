@@ -1344,6 +1344,7 @@ generated-themes.nix
 
 ```text
 generated-themes/
+  manifest.json
   CREDITS
   <theme-file-name>/
     kitty/<resolved-theme-name>.conf
@@ -1360,9 +1361,46 @@ generated-themes/
 
 The `helix/` directory preserves the source Helix theme TOML file used to generate the exported files. The top-level `CREDITS` file must identify the Helix repository theme directory as the source of the Helix theme files and credit the original authors and Helix project contributors.
 
+`manifest.json` stores release data as relative paths inside `generated-themes/`. It must include only generated files that exist.
+
+Example:
+
+```json
+{
+  "themes": {
+    "adwaita-dark": {
+      "kitty": {
+        "theme": "adwaita-dark/kitty/adwaita-dark.conf"
+      },
+      "base16": {
+        "theme": "adwaita-dark/base16/adwaita-dark.yaml"
+      },
+      "bat": {
+        "theme": "adwaita-dark/bat/adwaita-dark.tmTheme"
+      },
+      "gitui": {
+        "theme": "adwaita-dark/gitui/theme.ron",
+        "syntax": "adwaita-dark/gitui/adwaita-dark.tmTheme"
+      },
+      "mc": {
+        "theme": "adwaita-dark/mc/adwaita-dark.ini",
+        "filehighlight": "adwaita-dark/mc/filehighlight.ini",
+        "colortable": "adwaita-dark/mc/colortable.env"
+      },
+      "dircolors": {
+        "theme": "adwaita-dark/dircolors/adwaita-dark.dircolors"
+      },
+      "helix": {
+        "theme": "adwaita-dark/helix/adwaita-dark.toml"
+      }
+    }
+  }
+}
+```
+
 ## 15.1 Nix release file
 
-`generated-themes.nix` is generated for NixOS and Home Manager users. It fetches the released zip with `pkgs.fetchzip`, embeds the fixed-output hash for the unpacked archive, and exposes stable attributes for generated theme files.
+`generated-themes.nix` is generated for NixOS and Home Manager users. It fetches the released zip with `pkgs.fetchzip`, embeds the fixed-output hash for the unpacked archive, reads `generated-themes/manifest.json`, and exposes stable attributes for generated theme files.
 
 The file has this shape:
 
@@ -1376,45 +1414,24 @@ let
     stripRoot = false;
   };
 
+  manifest =
+    builtins.fromJSON (builtins.readFile "${src}/generated-themes/manifest.json");
+
   file = path: "${src}/generated-themes/${path}";
+
+  mapFiles = value:
+    if builtins.isAttrs value
+    then builtins.mapAttrs (_: mapFiles) value
+    else file value;
 in
 {
-  inherit src;
+  inherit src manifest;
 
-  themes = {
-    "adwaita-dark" = {
-      kitty = {
-        theme = file "adwaita-dark/kitty/adwaita-dark.conf";
-      };
-      base16 = {
-        theme = file "adwaita-dark/base16/adwaita-dark.yaml";
-      };
-      bat = {
-        theme = file "adwaita-dark/bat/adwaita-dark.tmTheme";
-      };
-      gitui = {
-        theme = file "adwaita-dark/gitui/theme.ron";
-        syntax = file "adwaita-dark/gitui/adwaita-dark.tmTheme";
-      };
-      mc = {
-        theme = file "adwaita-dark/mc/adwaita-dark.ini";
-        filehighlight = file "adwaita-dark/mc/filehighlight.ini";
-        colortable = file "adwaita-dark/mc/colortable.env";
-      };
-      dircolors = {
-        theme = file "adwaita-dark/dircolors/adwaita-dark.dircolors";
-      };
-      helix = {
-        theme = file "adwaita-dark/helix/adwaita-dark.toml";
-      };
-    };
-  };
+  themes = builtins.mapAttrs (_: mapFiles) manifest.themes;
 }
 ```
 
-Theme names must always be emitted as quoted attributes so names with hyphens or other non-identifier characters remain valid Nix.
-
-The release Nix generator should emit attributes only for files that exist. This lets the release file remain valid if a format is added, removed, or conditionally unavailable.
+The public attribute shape is defined by `manifest.json`. Theme names are JSON object keys, so names with hyphens or other non-identifier characters remain valid when accessed as quoted Nix attributes.
 
 ## 15.2 Home Manager consumption
 

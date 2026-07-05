@@ -23,15 +23,20 @@ download-helix-themes:
 helix-themes:
 	./scripts/download-helix-themes.sh
 
-generated-themes: build helix-themes
+generated-themes: helix-themes
+	cargo build
 	./scripts/generate-from-helix-themes.sh
 
 generate-themes: generated-themes
 
-generated-themes.zip: generated-themes
+generated-themes/manifest.json: generated-themes scripts/create-release-manifest.sh
+	./scripts/create-release-manifest.sh
+
+generated-themes.zip: generated-themes/manifest.json
+	rm -f generated-themes.zip
 	zip -r generated-themes.zip generated-themes
 
-generated-themes.nix: generated-themes.zip
+generated-themes.nix: generated-themes.zip scripts/create-release-nix.sh
 	./scripts/create-release-nix.sh "$(RELEASE_TAG)"
 
 release-nix: generated-themes.nix

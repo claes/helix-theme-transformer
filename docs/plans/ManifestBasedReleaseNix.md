@@ -1,6 +1,6 @@
 # Manifest-Based Release Nix Plan
 
-Status: planned, not implemented.
+Status: implemented.
 
 This plan changes release generation so `generated-themes.zip` contains
 `generated-themes/manifest.json`, while `generated-themes.nix` contains only
