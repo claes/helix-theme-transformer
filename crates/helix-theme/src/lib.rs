@@ -115,29 +115,33 @@ pub fn resolve_file(
     path: &Utf8Path,
     theme_dirs: &[Utf8PathBuf],
 ) -> Result<ResolvedTheme, HelixThemeError> {
-    resolve_file_inner(path, theme_dirs, &mut Vec::new())
+    let raw = load_with_inheritance(path, theme_dirs, &mut Vec::new())?;
+    Ok(resolve_raw(raw))
 }
 
-fn resolve_file_inner(
+fn load_with_inheritance(
     path: &Utf8Path,
     theme_dirs: &[Utf8PathBuf],
     stack: &mut Vec<String>,
-) -> Result<ResolvedTheme, HelixThemeError> {
+) -> Result<RawTheme, HelixThemeError> {
     let raw = load_raw(path)?;
     if stack.contains(&raw.name) {
         return Err(HelixThemeError::InheritanceCycle(raw.name));
     }
     stack.push(raw.name.clone());
 
-    let resolved = if let Some(parent) = raw.inherits.as_deref() {
+    let merged = if let Some(parent) = raw.inherits.as_deref() {
         let parent_path = find_theme(parent, theme_dirs)?;
-        let parent = resolve_file_inner(&parent_path, theme_dirs, stack)?;
-        overlay_and_resolve(parent, raw)
+        let parent = load_with_inheritance(&parent_path, theme_dirs, stack)?;
+        overlay_raw(parent, raw)
     } else {
-        resolve_raw(raw)
+        RawTheme {
+            inherits: None,
+            ..raw
+        }
     };
     stack.pop();
-    Ok(resolved)
+    Ok(merged)
 }
 
 fn find_theme(name: &str, theme_dirs: &[Utf8PathBuf]) -> Result<Utf8PathBuf, HelixThemeError> {
@@ -154,23 +158,19 @@ fn find_theme(name: &str, theme_dirs: &[Utf8PathBuf]) -> Result<Utf8PathBuf, Hel
     })
 }
 
-fn overlay_and_resolve(parent: ResolvedTheme, child: RawTheme) -> ResolvedTheme {
+fn overlay_raw(parent: RawTheme, child: RawTheme) -> RawTheme {
     let mut raw = RawTheme {
         name: child.name,
         source_path: child.source_path,
         inherits: None,
         palette: parent.palette,
-        scopes: parent
-            .scopes
-            .into_iter()
-            .map(|(scope, style)| (scope, RawStyle::from(style)))
-            .collect(),
+        scopes: parent.scopes,
         warnings: parent.warnings,
     };
     raw.palette.extend(child.palette);
     raw.scopes.extend(child.scopes);
     raw.warnings.extend(child.warnings);
-    resolve_raw(raw)
+    raw
 }
 
 pub fn resolve_raw(raw: RawTheme) -> ResolvedTheme {
@@ -321,20 +321,6 @@ fn parse_underline_style(value: &str) -> Option<UnderlineStyle> {
     }
 }
 
-impl From<Style> for RawStyle {
-    fn from(style: Style) -> Self {
-        Self {
-            fg: style.fg,
-            bg: style.bg,
-            underline: style.underline.map(|underline| RawUnderline {
-                color: underline.color,
-                style: underline.style,
-            }),
-            modifiers: style.modifiers,
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -435,6 +421,39 @@ mod tests {
             resolved.scopes["ui.background"].bg.as_deref(),
             Some("#101010")
         );
+        assert_eq!(resolved.scopes["ui.text"].fg.as_deref(), Some("#eeeeee"));
+
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn resolves_inherited_scopes_with_child_palette_overrides() {
+        let root = temp_test_dir("htt-inherited-palette-overrides");
+        std::fs::write(
+            root.join("parent.toml"),
+            r##"
+            "ui.text" = "fg"
+
+            [palette]
+            fg = "#111111"
+            "##,
+        )
+        .unwrap();
+        std::fs::write(
+            root.join("child.toml"),
+            r##"
+            inherits = "parent"
+
+            [palette]
+            fg = "#eeeeee"
+            "##,
+        )
+        .unwrap();
+
+        let child_path = Utf8PathBuf::from_path_buf(root.join("child.toml")).unwrap();
+        let theme_dirs = vec![Utf8PathBuf::from_path_buf(root.clone()).unwrap()];
+        let resolved = resolve_file(&child_path, &theme_dirs).unwrap();
+
         assert_eq!(resolved.scopes["ui.text"].fg.as_deref(), Some("#eeeeee"));
 
         std::fs::remove_dir_all(root).unwrap();

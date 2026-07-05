@@ -1,0 +1,12 @@
+Helix theme files
+=================
+
+The Helix theme source files in this directory were copied from the Helix editor
+repository:
+
+https://github.com/helix-editor/helix/tree/master/runtime/themes
+
+Copyright for those original theme files belongs to their respective authors and
+the Helix project contributors.
+
+Generated theme files were produced by Helix Theme Transformer from those Helix theme files.

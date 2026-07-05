@@ -94,8 +94,9 @@ Rules:
 2. Child palette entries override parent palette entries with the same key.
 3. Parent scope styles are inherited.
 4. Child scope styles override parent scope styles with the same key.
-5. Exporters must only consume resolved themes.
-6. Exporters must not need to understand `inherits`.
+5. Inheritance must merge raw palette references and scope styles before resolving palette references to concrete colors.
+6. Exporters must only consume resolved themes.
+7. Exporters must not need to understand `inherits`.
 
 ## 2.2 Palette references
 
@@ -319,7 +320,7 @@ selection:
 
 foreground:
   - ["ui.text", "fg"]
-  - ["ui.text.focus", "fg"]
+  - ["ui.background", "fg"]
 
 muted_foreground:
   - ["comment", "fg"]
@@ -327,9 +328,9 @@ muted_foreground:
   - ["ui.text.inactive", "fg"]
 
 bright_foreground:
-  - ["ui.cursor", "fg"]
-  - ["ui.text.focus", "fg"]
-  - ["markup.heading", "fg"]
+  []
+
+Helix does not have a reliable neutral bright-foreground UI scope. Do not derive this role from cursor text, focused text, or headings; those are commonly accent colors. Let palette extraction infer bright neutral colors from background and foreground when this role is missing.
 
 cursor:
   - ["ui.cursor.primary", "bg"]
