@@ -1,6 +1,7 @@
 mod base16;
 mod bat;
 mod dircolors;
+mod file_kinds;
 mod gitui;
 mod kitty;
 mod mc;

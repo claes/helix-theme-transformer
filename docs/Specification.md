@@ -491,11 +491,49 @@ Implement simple RGB mixing, lighten, darken, and luminance helpers.
 
 ---
 
-# 7. Kitty Exporter
+# 7. Shared File Kind Styling
+
+File-oriented exporters must map target-specific file classes and statuses to shared `FileKind` values before resolving colors.
+
+Required mappings:
+
+```text
+Directory       -> Function/base0D, bold
+Symlink         -> Special/base0C, bold
+Executable      -> String/base0B, bold
+Fifo            -> Warning/base0A
+Socket          -> Keyword/base0E, bold
+Device          -> Warning/base0A, bold
+BrokenLink      -> Error/base08, bold
+Missing         -> MutedForeground/base03
+Setuid          -> Error/base08 background
+Setgid          -> Warning/base0A background
+WritableDir     -> GitAdded/base0B background
+StickyDir       -> Special/base0C background
+Archive         -> Number/base09
+ImageVideo      -> Keyword/base0E, bold
+Audio           -> Special/base0C
+Document        -> String/base0B
+Source          -> Keyword/base0E
+Database        -> Type/base0A
+Temporary       -> MutedForeground/base03
+GitAdded        -> GitAdded/base0B
+GitModified     -> GitModified or Warning/base0A
+GitRemoved      -> GitRemoved or Error/base08
+GitMoved        -> Special/base0C
+```
+
+This follows common terminal conventions for directories, symlinks, executables, devices, and Git status. Archives intentionally use `Number/base09` instead of error red so they do not conflict with broken links or removed files.
+
+Each exporter may render emphasis using target-specific syntax, but semantic roles and fallback colors must come from the shared file kind style table.
+
+---
+
+# 8. Kitty Exporter
 
 Generate a Kitty `.conf` file.
 
-## 7.1 Mapping
+## 8.1 Mapping
 
 ```text
 foreground              ← base05
@@ -524,7 +562,7 @@ color14                 ← brighten(base0C)
 color15                 ← base07
 ```
 
-## 7.2 Output example
+## 8.2 Output example
 
 ```conf
 # Generated from Helix theme: my-theme
@@ -558,7 +596,7 @@ color15 #ffffff
 
 ---
 
-# 8. bat Exporter
+# 9. bat Exporter
 
 Generate a Sublime Text `.tmTheme` XML property-list file for bat.
 
@@ -578,7 +616,7 @@ bat cache --build
 
 bat uses the `.tmTheme` filename as the theme name.
 
-## 8.1 Architecture rule
+## 9.1 Architecture rule
 
 The bat exporter must consume semantic roles and the derived palette. It must not inspect Helix TOML scopes directly and must not implement a direct `Helix TOML → bat` conversion.
 
@@ -596,7 +634,7 @@ Derived 16-color palette
 bat .tmTheme exporter
 ```
 
-## 8.2 Global settings
+## 9.2 Global settings
 
 Map global `.tmTheme` settings from semantic roles first, then Base16-like fallback colors:
 
@@ -608,7 +646,7 @@ selection     ← selection or base02
 lineHighlight ← surface or base01
 ```
 
-## 8.3 Syntax scope settings
+## 9.3 Syntax scope settings
 
 Map semantic roles to Sublime-compatible scope selectors:
 
@@ -636,7 +674,7 @@ Each syntax setting should include a `foreground` color when the corresponding s
 
 If a semantic role is missing, exporters should use the relevant Base16-like fallback where one exists and emit a warning when the mapping is materially degraded.
 
-## 8.4 Font styles and loss
+## 9.4 Font styles and loss
 
 `.tmTheme` can represent some text styling but not all Helix style data.
 
@@ -659,7 +697,7 @@ underline color
 underline style
 ```
 
-## 8.5 Output example
+## 9.5 Output example
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -701,7 +739,7 @@ underline style
 
 ---
 
-# 9. Gitui Exporter
+# 10. Gitui Exporter
 
 Generate a gitui theme directory containing both UI and syntax theme files.
 
@@ -726,7 +764,7 @@ If the resolved theme name is `my-theme`, the generated syntax file must be:
 my-theme.tmTheme
 ```
 
-## 9.1 Architecture rule
+## 10.1 Architecture rule
 
 The gitui exporter must consume semantic roles and the derived palette. It must not inspect Helix TOML scopes directly and must not implement a direct `Helix TOML → gitui` conversion.
 
@@ -748,7 +786,7 @@ gitui exporter
 
 The syntax `.tmTheme` file should reuse the same TextMate exporter behavior used for the bat exporter.
 
-## 9.2 UI color mapping
+## 10.2 UI color mapping
 
 Map gitui RON fields from semantic roles first, then Base16-like fallback colors:
 
@@ -779,7 +817,7 @@ branch_fg            ← type or base0A
 block_title_focused  ← bright_foreground or base07
 ```
 
-## 9.3 RON output
+## 10.3 RON output
 
 Generate a deterministic RON patch. Every generated color value must be wrapped in `Some(...)`.
 
@@ -812,7 +850,7 @@ Example:
 )
 ```
 
-## 9.4 CLI output behavior
+## 10.4 CLI output behavior
 
 The single export command always generates gitui output along with every other supported format.
 
@@ -833,7 +871,7 @@ The gitui exporter must not require individual output file options for the RON o
 
 ---
 
-# 10. Midnight Commander Exporter
+# 11. Midnight Commander Exporter
 
 Generate a Midnight Commander truecolor skin file:
 
@@ -853,7 +891,7 @@ The skin can then be selected with:
 mc -S <resolved-theme-name>
 ```
 
-## 10.1 Architecture rule
+## 11.1 Architecture rule
 
 The Midnight Commander exporter must consume semantic roles and the derived palette. It must not inspect Helix TOML scopes directly and must not implement a direct `Helix TOML -> Midnight Commander` conversion.
 
@@ -872,7 +910,7 @@ Midnight Commander skin exporter
    └── <resolved-theme-name>.ini
 ```
 
-## 10.2 Skin header
+## 11.2 Skin header
 
 Generate truecolor skins first. This preserves resolved Helix colors without quantizing to the 256-color terminal palette.
 
@@ -884,7 +922,7 @@ The description must begin with the resolved theme name, followed by generated p
     truecolors = true
 ```
 
-## 10.3 Color syntax
+## 11.3 Color syntax
 
 Midnight Commander skin colors use:
 
@@ -903,7 +941,7 @@ Example:
     marked = #e0af68;#1f2335;bold
 ```
 
-## 10.4 Line drawing
+## 11.4 Line drawing
 
 Generated Midnight Commander skins must include a `[Lines]` section with explicit UTF-8 line drawing characters. Do not rely on Midnight Commander's fallback line definitions for generated skins.
 
@@ -922,7 +960,7 @@ Use the standard single-line and double-line border characters from bundled Midn
     dvert = ║
 ```
 
-## 10.5 UI mapping
+## 11.5 UI mapping
 
 Map Midnight Commander fields from semantic roles first, then Base16-like fallback colors.
 
@@ -977,7 +1015,7 @@ diffviewer.removed  ← foreground;git_removed
 diffviewer.error    ← foreground;error
 ```
 
-## 10.6 Loss reporting
+## 11.6 Loss reporting
 
 The Midnight Commander exporter should report:
 
@@ -988,7 +1026,7 @@ The Midnight Commander exporter should report:
 
 ---
 
-# 11. Dircolors Exporter
+# 12. Dircolors Exporter
 
 Generate a GNU `dircolors` database file:
 
@@ -1004,7 +1042,7 @@ Users can load it with:
 eval "$(dircolors generated/<theme-file-name>/dircolors/<resolved-theme-name>.dircolors)"
 ```
 
-## 11.1 Architecture rule
+## 12.1 Architecture rule
 
 The dircolors exporter must consume semantic roles and the derived palette. It must not inspect Helix TOML scopes directly and must not implement a direct `Helix TOML -> dircolors` conversion.
 
@@ -1023,7 +1061,7 @@ dircolors exporter
    └── <resolved-theme-name>.dircolors
 ```
 
-## 11.2 Truecolor SGR output
+## 12.2 Truecolor SGR output
 
 Use truecolor SGR sequences so resolved Helix Theme Transformer colors can be preserved directly.
 
@@ -1049,7 +1087,7 @@ Attributes are prepended in deterministic order:
 
 This requires compatible `dircolors`, `ls`, and terminal behavior.
 
-## 11.3 File format
+## 12.3 File format
 
 Start the database with terminal filters:
 
@@ -1065,7 +1103,7 @@ TERM tmux*
 
 Then emit core file type keys and extension mappings.
 
-## 11.4 Core file type mapping
+## 12.4 Core file type mapping
 
 Map file classes from semantic roles first, then Base16-like fallback colors.
 
@@ -1103,7 +1141,7 @@ STICKY                  ← foreground on special
 EXEC                    ← function or git_added
 ```
 
-## 11.5 Extension mapping
+## 12.5 Extension mapping
 
 Use `*.<extension>` keys accepted by `dircolors`.
 
@@ -1126,7 +1164,7 @@ Example:
 *.png 01;38;2;125;207;255
 ```
 
-## 11.6 Loss reporting
+## 12.6 Loss reporting
 
 The dircolors exporter should report:
 
@@ -1136,7 +1174,7 @@ The dircolors exporter should report:
 
 ---
 
-# 12. Loss Report
+# 13. Loss Report
 
 Every export should produce a report.
 
@@ -1170,7 +1208,7 @@ Provide reports as:
 
 ---
 
-# 13. CLI
+# 14. CLI
 
 Suggested commands:
 
@@ -1199,7 +1237,7 @@ generated/
     dircolors/<resolved-theme-name>.dircolors
 ```
 
-## 13.1 Inheritance lookup
+## 14.1 Inheritance lookup
 
 `--theme-dir` is optional and may be passed more than once.
 
@@ -1207,7 +1245,7 @@ When provided, inherited theme names are searched in the given directories in co
 
 When omitted, inherited theme names are searched in the input theme file's parent directory.
 
-## 13.2 Useful options
+## 14.2 Useful options
 
 ```text
 --strict
@@ -1228,7 +1266,7 @@ When omitted, inherited theme names are searched in the input theme file's paren
 
 ---
 
-# 14. Release Artifacts
+# 15. Release Artifacts
 
 Generated theme releases are distributed as a GitHub Release containing at least:
 
@@ -1255,7 +1293,7 @@ generated-themes/
 
 The `helix/` directory preserves the source Helix theme TOML file used to generate the exported files. The top-level `CREDITS` file must identify the Helix repository theme directory as the source of the Helix theme files and credit the original authors and Helix project contributors.
 
-## 14.1 Nix release file
+## 15.1 Nix release file
 
 `generated-themes.nix` is generated for NixOS and Home Manager users. It fetches the released zip with `pkgs.fetchzip`, embeds the fixed-output hash for the unpacked archive, and exposes stable attributes for generated theme files.
 
@@ -1297,7 +1335,7 @@ Theme names must always be emitted as quoted attributes so names with hyphens or
 
 The release Nix generator should emit attributes only for files that exist. This lets the release file remain valid if a format is added, removed, or conditionally unavailable.
 
-## 14.2 Home Manager consumption
+## 15.2 Home Manager consumption
 
 A NixOS flake using Home Manager can consume released themes by importing `generated-themes.nix` as a non-flake input:
 
@@ -1323,9 +1361,9 @@ in {
 
 ---
 
-# 15. Tests
+# 16. Tests
 
-## 15.1 Unit tests
+## 16.1 Unit tests
 
 Test:
 
@@ -1342,7 +1380,7 @@ Test:
 11. GNU `dircolors` export
 12. Loss report generation
 
-## 15.2 Fixture themes
+## 16.2 Fixture themes
 
 Create fixtures for:
 
@@ -1358,7 +1396,7 @@ underline.toml
 rich-theme.toml
 ```
 
-## 15.3 Golden output tests
+## 16.3 Golden output tests
 
 For selected fixture themes, compare generated outputs against committed snapshots:
 
@@ -1371,7 +1409,7 @@ tests/golden/mc/minimal.ini
 tests/golden/dircolors/minimal.dircolors
 ```
 
-## 15.4 Interactive tool test scripts
+## 16.4 Interactive tool test scripts
 
 Every exporter for an interactive tool must include a matching tool test script under:
 
@@ -1393,7 +1431,7 @@ Exporters for non-interactive data formats, such as Base16 YAML, do not require 
 
 ---
 
-# 16. Acceptance Criteria
+# 17. Acceptance Criteria
 
 The tool is acceptable when:
 
@@ -1412,10 +1450,11 @@ The tool is acceptable when:
 13. It does not rely on palette names as primary semantic meaning.
 14. It can generate release artifacts containing `generated-themes.zip` and a parseable `generated-themes.nix` for NixOS/Home Manager consumption.
 15. Every interactive tool exporter has a matching script in `scripts/tool-test-scripts/` for locally previewing and tuning generated themes.
+16. File-oriented exporters share the same `FileKind` style mapping for equivalent file types and statuses.
 
 ---
 
-# 17. Recommended Implementation Order
+# 18. Recommended Implementation Order
 
 Implement in this order:
 
@@ -1427,22 +1466,23 @@ Implement in this order:
 5. Inheritance resolver
 6. Semantic role derivation
 7. 16-color extraction
-8. Kitty exporter
-9. CLI
-10. bat exporter
-11. gitui exporter
-12. Midnight Commander exporter
-13. dircolors exporter
-14. Reports
-15. Batch export
-16. Release Nix artifact generation
-17. Golden tests
-18. Interactive tool test scripts
+8. Shared file kind styling
+9. Kitty exporter
+10. CLI
+11. bat exporter
+12. gitui exporter
+13. Midnight Commander exporter
+14. dircolors exporter
+15. Reports
+16. Batch export
+17. Release Nix artifact generation
+18. Golden tests
+19. Interactive tool test scripts
 ```
 
 ---
 
-# 18. Design Principle
+# 19. Design Principle
 
 The architecture should be:
 

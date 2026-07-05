@@ -1,3 +1,4 @@
+use crate::file_kinds::{push_file_kind_source, resolve_file_kind_color, FileKind};
 use crate::report::{dropped_items, role_source, ExportReport, PreservedItem};
 use palette16::{color, Base16Palette};
 use semantic_roles::{role_color, Role, SemanticRoles};
@@ -59,17 +60,24 @@ struct McEntry {
 }
 
 #[derive(Debug, Clone, Copy)]
-struct McColor {
-    roles: &'static [Role],
-    fallback_base: &'static str,
+enum McColor {
+    Role {
+        roles: &'static [Role],
+        fallback_base: &'static str,
+    },
+    FileKind(FileKind),
 }
 
 impl McColor {
     const fn new(roles: &'static [Role], fallback_base: &'static str) -> Self {
-        Self {
+        Self::Role {
             roles,
             fallback_base,
         }
+    }
+
+    const fn file_kind(kind: FileKind) -> Self {
+        Self::FileKind(kind)
     }
 }
 
@@ -79,18 +87,25 @@ const SELECTION: McColor = McColor::new(&[Role::Selection], "base02");
 const FOREGROUND: McColor = McColor::new(&[Role::Foreground], "base05");
 const MUTED_FOREGROUND: McColor = McColor::new(&[Role::MutedForeground], "base03");
 const BRIGHT_FOREGROUND: McColor = McColor::new(&[Role::BrightForeground], "base07");
-const FUNCTION: McColor = McColor::new(&[Role::Function], "base0D");
 const TYPE: McColor = McColor::new(&[Role::Type], "base0A");
-const VARIABLE: McColor = McColor::new(&[Role::Variable, Role::Function], "base0D");
-const STRING: McColor = McColor::new(&[Role::String], "base0B");
-const NUMBER: McColor = McColor::new(&[Role::Number], "base09");
-const CONSTANT: McColor = McColor::new(&[Role::Constant], "base09");
 const SPECIAL: McColor = McColor::new(&[Role::Special], "base0C");
 const ERROR: McColor = McColor::new(&[Role::Error], "base08");
 const WARNING: McColor = McColor::new(&[Role::Warning, Role::Type], "base0A");
 const GIT_ADDED: McColor = McColor::new(&[Role::GitAdded], "base0B");
-const GIT_MODIFIED: McColor = McColor::new(&[Role::GitModified, Role::Warning], "base0A");
-const GIT_REMOVED: McColor = McColor::new(&[Role::GitRemoved, Role::Error], "base08");
+const FILE_DIRECTORY: McColor = McColor::file_kind(FileKind::Directory);
+const FILE_SYMLINK: McColor = McColor::file_kind(FileKind::Symlink);
+const FILE_EXECUTABLE: McColor = McColor::file_kind(FileKind::Executable);
+const FILE_DEVICE: McColor = McColor::file_kind(FileKind::Device);
+const FILE_BROKEN_LINK: McColor = McColor::file_kind(FileKind::BrokenLink);
+const FILE_ARCHIVE: McColor = McColor::file_kind(FileKind::Archive);
+const FILE_DOCUMENT: McColor = McColor::file_kind(FileKind::Document);
+const FILE_SOURCE: McColor = McColor::file_kind(FileKind::Source);
+const FILE_IMAGE_VIDEO: McColor = McColor::file_kind(FileKind::ImageVideo);
+const FILE_DATABASE: McColor = McColor::file_kind(FileKind::Database);
+const FILE_TEMPORARY: McColor = McColor::file_kind(FileKind::Temporary);
+const FILE_GIT_ADDED: McColor = McColor::file_kind(FileKind::GitAdded);
+const FILE_GIT_MODIFIED: McColor = McColor::file_kind(FileKind::GitModified);
+const FILE_GIT_REMOVED: McColor = McColor::file_kind(FileKind::GitRemoved);
 
 const BOLD: &[&str] = &["bold"];
 const ITALIC: &[&str] = &["italic"];
@@ -169,21 +184,21 @@ fn mc_sections() -> Vec<McSection> {
         McSection {
             name: "filehighlight",
             entries: vec![
-                entry("directory", TYPE, BACKGROUND, BOLD),
-                entry("executable", FUNCTION, BACKGROUND, &[]),
-                entry("symlink", SPECIAL, BACKGROUND, &[]),
-                entry("hardlink", SPECIAL, BACKGROUND, &[]),
-                entry("stalelink", ERROR, BACKGROUND, &[]),
-                entry("device", CONSTANT, BACKGROUND, &[]),
-                entry("special", SPECIAL, BACKGROUND, &[]),
-                entry("core", ERROR, BACKGROUND, &[]),
-                entry("temp", MUTED_FOREGROUND, BACKGROUND, &[]),
-                entry("archive", NUMBER, BACKGROUND, &[]),
-                entry("doc", STRING, BACKGROUND, &[]),
-                entry("source", FUNCTION, BACKGROUND, &[]),
-                entry("media", VARIABLE, BACKGROUND, &[]),
-                entry("graph", SPECIAL, BACKGROUND, &[]),
-                entry("database", TYPE, BACKGROUND, &[]),
+                entry("directory", FILE_DIRECTORY, BACKGROUND, BOLD),
+                entry("executable", FILE_EXECUTABLE, BACKGROUND, BOLD),
+                entry("symlink", FILE_SYMLINK, BACKGROUND, &[]),
+                entry("hardlink", FILE_SYMLINK, BACKGROUND, &[]),
+                entry("stalelink", FILE_BROKEN_LINK, BACKGROUND, &[]),
+                entry("device", FILE_DEVICE, BACKGROUND, &[]),
+                entry("special", FILE_SYMLINK, BACKGROUND, &[]),
+                entry("core", FILE_BROKEN_LINK, BACKGROUND, &[]),
+                entry("temp", FILE_TEMPORARY, BACKGROUND, &[]),
+                entry("archive", FILE_ARCHIVE, BACKGROUND, &[]),
+                entry("doc", FILE_DOCUMENT, BACKGROUND, &[]),
+                entry("source", FILE_SOURCE, BACKGROUND, &[]),
+                entry("media", FILE_IMAGE_VIDEO, BACKGROUND, &[]),
+                entry("graph", FILE_IMAGE_VIDEO, BACKGROUND, &[]),
+                entry("database", FILE_DATABASE, BACKGROUND, &[]),
             ],
         },
         McSection {
@@ -256,11 +271,11 @@ fn mc_sections() -> Vec<McSection> {
         McSection {
             name: "diffviewer",
             entries: vec![
-                entry("added", BACKGROUND, GIT_ADDED, &[]),
-                entry("changedline", BACKGROUND, WARNING, &[]),
-                entry("changednew", BACKGROUND, GIT_ADDED, &[]),
-                entry("changed", BACKGROUND, GIT_MODIFIED, &[]),
-                entry("removed", FOREGROUND, GIT_REMOVED, &[]),
+                entry("added", BACKGROUND, FILE_GIT_ADDED, &[]),
+                entry("changedline", BACKGROUND, FILE_GIT_MODIFIED, &[]),
+                entry("changednew", BACKGROUND, FILE_GIT_ADDED, &[]),
+                entry("changed", BACKGROUND, FILE_GIT_MODIFIED, &[]),
+                entry("removed", FOREGROUND, FILE_GIT_REMOVED, &[]),
                 entry("error", FOREGROUND, ERROR, &[]),
             ],
         },
@@ -282,12 +297,20 @@ fn resolve_color<'a>(
     roles: &'a SemanticRoles,
     palette: &'a Base16Palette,
 ) -> &'a str {
-    for role in mc_color.roles {
-        if let Some(color) = role_color(roles, *role) {
-            return color;
+    match mc_color {
+        McColor::Role {
+            roles: color_roles,
+            fallback_base,
+        } => {
+            for role in color_roles {
+                if let Some(color) = role_color(roles, *role) {
+                    return color;
+                }
+            }
+            color(palette, fallback_base)
         }
+        McColor::FileKind(kind) => resolve_file_kind_color(kind, roles, palette),
     }
-    color(palette, mc_color.fallback_base)
 }
 
 fn mc_preserved_items(roles: &SemanticRoles) -> Vec<PreservedItem> {
@@ -309,16 +332,21 @@ fn push_source(
     property: &str,
     mc_color: McColor,
 ) {
-    for role in mc_color.roles {
-        if let Some(value) = roles.get(role) {
-            if let Some(source) = role_source(value) {
-                items.push(PreservedItem {
-                    target: format!("{section}.{key}.{property}"),
-                    source,
-                });
-                break;
+    let target = format!("{section}.{key}.{property}");
+    match mc_color {
+        McColor::Role {
+            roles: color_roles, ..
+        } => {
+            for role in color_roles {
+                if let Some(value) = roles.get(role) {
+                    if let Some(source) = role_source(value) {
+                        items.push(PreservedItem { target, source });
+                        break;
+                    }
+                }
             }
         }
+        McColor::FileKind(kind) => push_file_kind_source(items, roles, &target, kind),
     }
 }
 
