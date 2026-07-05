@@ -227,6 +227,7 @@ foreground
 muted_foreground
 bright_foreground
 cursor
+directory
 
 comment
 keyword
@@ -500,7 +501,7 @@ File-oriented exporters must map target-specific file classes and statuses to sh
 Required mappings:
 
 ```text
-Directory       -> Function/base0D, bold
+Directory       -> Directory, then Function/base0D, bold
 Symlink         -> Special/base0C, bold
 Executable      -> String/base0B, bold
 Fifo            -> Warning/base0A
@@ -1249,6 +1250,8 @@ The Yazi exporter must consume semantic roles and the derived palette. It must n
 The generated file is a Yazi `theme.toml`, not a flavor directory. It should style core UI sections such as `[app]`, `[mgr]`, `[mode]`, `[status]`, `[tabs]`, dialogs, notifications, completion, tasks, help, and `[filetype]`.
 
 `[filetype].rules` must reuse the shared `FileKind` mapping so equivalent file classes and extension groups stay consistent with `dircolors`, Midnight Commander, and gitui.
+
+Yazi uses the first matching filetype rule, so broader fallback rules must be emitted after more specific file type, extension, and directory rules.
 
 Yazi syntax preview theming is out of scope for the direct `theme.toml` exporter. A future flavor exporter may generate `flavor.toml` and `tmtheme.xml`.
 

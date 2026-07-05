@@ -102,7 +102,6 @@ footer = { fg = "#565f89", italic = true }
 [filetype]
 rules = [
   { url = "*", is = "orphan", fg = "#f7768e", bold = true },
-  { url = "*/", fg = "#7aa2f7", bold = true },
   { url = "*", is = "link", fg = "#7dcfff", bold = true },
   { url = "*", is = "exec", fg = "#9ece6a", bold = true },
   { url = "*", is = "fifo", fg = "#e0af68" },
@@ -219,4 +218,6 @@ rules = [
   { url = "*.sql", fg = "#e0af68" },
   { url = "*.sqlite", fg = "#e0af68" },
   { url = "*.sqlite3", fg = "#e0af68" },
+  { url = "*/", fg = "#7aa2f7", bold = true },
+  { url = "*", fg = "#c0caf5" },
 ]

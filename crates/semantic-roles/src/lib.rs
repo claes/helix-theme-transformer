@@ -12,6 +12,7 @@ pub enum Role {
     MutedForeground,
     BrightForeground,
     Cursor,
+    Directory,
     Comment,
     Keyword,
     Function,
@@ -42,6 +43,7 @@ impl Role {
             Role::MutedForeground => "muted_foreground",
             Role::BrightForeground => "bright_foreground",
             Role::Cursor => "cursor",
+            Role::Directory => "directory",
             Role::Comment => "comment",
             Role::Keyword => "keyword",
             Role::Function => "function",
@@ -111,7 +113,7 @@ fn read_property(style: &Style, property: SourceProperty) -> Option<&str> {
     }
 }
 
-pub fn all_roles() -> [Role; 25] {
+pub fn all_roles() -> [Role; 26] {
     [
         Role::Background,
         Role::Surface,
@@ -120,6 +122,7 @@ pub fn all_roles() -> [Role; 25] {
         Role::MutedForeground,
         Role::BrightForeground,
         Role::Cursor,
+        Role::Directory,
         Role::Comment,
         Role::Keyword,
         Role::Function,
@@ -161,6 +164,7 @@ fn mappings(role: Role) -> &'static [(&'static str, SourceProperty)] {
             ("ui.cursor.primary", Fg),
             ("ui.cursor", Fg),
         ],
+        Role::Directory => &[("ui.text.directory", Fg)],
         Role::Comment => &[("comment", Fg)],
         Role::Keyword => &[
             ("keyword", Fg),
@@ -266,6 +270,30 @@ mod tests {
         let error = roles.get(&Role::Error).unwrap();
         assert_eq!(error.color.as_deref(), Some("#ff0000"));
         assert_eq!(error.source_property, Some(SourceProperty::UnderlineColor));
+    }
+
+    #[test]
+    fn derives_directory_from_ui_text_directory() {
+        let theme = ResolvedTheme {
+            name: "demo".to_owned(),
+            source_path: Utf8PathBuf::from("demo.toml"),
+            palette: IndexMap::new(),
+            scopes: indexmap! {
+                "function".to_owned() => Style {
+                    fg: Some("#50fa7b".to_owned()),
+                    ..Style::default()
+                },
+                "ui.text.directory".to_owned() => Style {
+                    fg: Some("#8be9fd".to_owned()),
+                    ..Style::default()
+                },
+            },
+            warnings: Vec::new(),
+        };
+        let (roles, _) = derive_roles(&theme);
+        let directory = roles.get(&Role::Directory).unwrap();
+        assert_eq!(directory.color.as_deref(), Some("#8be9fd"));
+        assert_eq!(directory.source_scope.as_deref(), Some("ui.text.directory"));
     }
 
     #[test]

@@ -111,7 +111,11 @@ pub fn file_extension_groups() -> &'static [FileExtensionGroup] {
 
 pub fn file_kind_style(kind: FileKind) -> FileKindStyle {
     match kind {
-        FileKind::Directory => style(&[Role::Function], "base0D", FileEmphasis::Bold),
+        FileKind::Directory => style(
+            &[Role::Directory, Role::Function],
+            "base0D",
+            FileEmphasis::Bold,
+        ),
         FileKind::Symlink => style(&[Role::Special], "base0C", FileEmphasis::Bold),
         FileKind::Executable => style(
             &[Role::String, Role::GitAdded],
@@ -210,6 +214,10 @@ mod tests {
     #[test]
     fn key_file_kind_fallbacks_match_specification() {
         assert_eq!(file_kind_style(FileKind::Directory).fallback_base, "base0D");
+        assert_eq!(
+            file_kind_style(FileKind::Directory).roles,
+            &[Role::Directory, Role::Function]
+        );
         assert_eq!(
             file_kind_style(FileKind::Executable).fallback_base,
             "base0B"

@@ -304,6 +304,14 @@ fn push_filetype_rules(output: &mut String, roles: &SemanticRoles, palette: &Bas
             ));
         }
     }
+    output.push_str(&format!(
+        "  {{ url = \"*/\", {} }},\n",
+        render_style_body(style_from_file_kind(FileKind::Directory), roles, palette)
+    ));
+    output.push_str(&format!(
+        "  {{ url = \"*\", {} }},\n",
+        render_style_body(style(Some(FOREGROUND), None, &[]), roles, palette)
+    ));
     output.push_str("]\n");
 }
 
@@ -318,10 +326,6 @@ fn filetype_rules() -> &'static [FiletypeRule] {
         FiletypeRule {
             matcher: "url = \"*\", is = \"orphan\"",
             kind: FileKind::BrokenLink,
-        },
-        FiletypeRule {
-            matcher: "url = \"*/\"",
-            kind: FileKind::Directory,
         },
         FiletypeRule {
             matcher: "url = \"*\", is = \"link\"",
