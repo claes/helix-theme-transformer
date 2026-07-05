@@ -45,6 +45,70 @@ pub struct FileKindStyle {
     pub emphasis: FileEmphasis,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct FileExtensionGroup {
+    pub name: &'static str,
+    pub kind: FileKind,
+    pub extensions: &'static [&'static str],
+}
+
+pub fn file_extension_groups() -> &'static [FileExtensionGroup] {
+    &[
+        FileExtensionGroup {
+            name: "archives and compressed files",
+            kind: FileKind::Archive,
+            extensions: &[
+                "7z", "ace", "alz", "apk", "arc", "arj", "bz", "bz2", "cab", "cpio", "crate",
+                "deb", "gz", "jar", "lha", "lrz", "lz", "lz4", "lzma", "lzo", "rar", "rpm", "tar",
+                "tbz", "tbz2", "tgz", "tlz", "txz", "xz", "zip", "zst",
+            ],
+        },
+        FileExtensionGroup {
+            name: "images and video",
+            kind: FileKind::ImageVideo,
+            extensions: &[
+                "avif", "bmp", "gif", "jpeg", "jpg", "jxl", "mkv", "mov", "mp4", "mpeg", "mpg",
+                "png", "svg", "svgz", "tif", "tiff", "webm", "webp",
+            ],
+        },
+        FileExtensionGroup {
+            name: "audio",
+            kind: FileKind::Audio,
+            extensions: &[
+                "aac", "flac", "m4a", "mid", "midi", "mp3", "ogg", "opus", "wav",
+            ],
+        },
+        FileExtensionGroup {
+            name: "documents",
+            kind: FileKind::Document,
+            extensions: &[
+                "djvu", "doc", "docx", "epub", "md", "odf", "odt", "pdf", "rtf", "tex", "txt",
+            ],
+        },
+        FileExtensionGroup {
+            name: "source code",
+            kind: FileKind::Source,
+            extensions: &[
+                "c", "cc", "clj", "cpp", "cs", "css", "go", "h", "hpp", "html", "java", "js",
+                "jsx", "lua", "nix", "php", "py", "rb", "rs", "scss", "sh", "toml", "ts", "tsx",
+                "vim", "zig",
+            ],
+        },
+        FileExtensionGroup {
+            name: "temporary and logs",
+            kind: FileKind::Temporary,
+            extensions: &["bak", "cache", "log", "old", "orig", "tmp"],
+        },
+        FileExtensionGroup {
+            name: "databases",
+            kind: FileKind::Database,
+            extensions: &[
+                "dat", "db", "dbf", "mdb", "pgsql", "sql", "sqlite", "sqlite3",
+            ],
+        },
+    ]
+}
+
 pub fn file_kind_style(kind: FileKind) -> FileKindStyle {
     match kind {
         FileKind::Directory => style(&[Role::Function], "base0D", FileEmphasis::Bold),

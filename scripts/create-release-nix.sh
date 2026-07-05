@@ -91,7 +91,13 @@ emit_file_attr() {
       printf '      };\n'
     fi
 
-    emit_file_attr "      " "mc" "$theme_name/mc/$theme_name.ini"
+    if [[ -f "$themes_dir/$theme_name/mc/$theme_name.ini" || -f "$themes_dir/$theme_name/mc/filehighlight.ini" ]]; then
+      printf '      mc = {\n'
+      emit_file_attr "        " "skin" "$theme_name/mc/$theme_name.ini"
+      emit_file_attr "        " "filehighlight" "$theme_name/mc/filehighlight.ini"
+      printf '      };\n'
+    fi
+
     emit_file_attr "      " "dircolors" "$theme_name/dircolors/$theme_name.dircolors"
     emit_file_attr "      " "helix" "$theme_name/helix/$theme_name.toml"
     printf '    };\n'

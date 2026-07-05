@@ -873,10 +873,11 @@ The gitui exporter must not require individual output file options for the RON o
 
 # 11. Midnight Commander Exporter
 
-Generate a Midnight Commander truecolor skin file:
+Generate a Midnight Commander truecolor skin file and file classification file:
 
 ```text
 <out-dir>/<theme-file-name>/mc/<resolved-theme-name>.ini
+<out-dir>/<theme-file-name>/mc/filehighlight.ini
 ```
 
 Midnight Commander user skins are commonly installed under:
@@ -906,8 +907,9 @@ Semantic Roles
    ↓
 Derived 16-color palette
    ↓
-Midnight Commander skin exporter
-   └── <resolved-theme-name>.ini
+Midnight Commander exporter
+   ├── <resolved-theme-name>.ini
+   └── filehighlight.ini
 ```
 
 ## 11.2 Skin header
@@ -1015,7 +1017,37 @@ diffviewer.removed  ← foreground;git_removed
 diffviewer.error    ← foreground;error
 ```
 
-## 11.6 Loss reporting
+## 11.6 File highlighting
+
+Generate `filehighlight.ini` from shared file extension groups so MC classifies files consistently with `dircolors`.
+
+The file must include MC structural classes:
+
+```text
+executable
+directory
+device
+special
+stalelink
+symlink
+hardlink
+```
+
+It must also cover every shared extension group used by `dircolors`:
+
+```text
+archive
+doc
+source
+media
+graph
+database
+temp
+```
+
+`ImageVideo` maps to MC `graph`; `Audio` maps to MC `media`.
+
+## 11.7 Loss reporting
 
 The Midnight Commander exporter should report:
 
@@ -1221,6 +1253,8 @@ htt export path/to/my-theme.toml --out-dir generated
 
 The export command always generates all supported formats. It never writes exported theme files to stdout.
 
+Each exporter returns a list of generated files plus one export report. Single-file exporters return a one-item file list; multi-file exporters return all files for that format.
+
 `--out-dir` identifies the parent directory where Helix Theme Transformer creates one theme directory. The theme directory name is derived automatically from the input TOML file name without its extension, after applying the same filename sanitization used for generated files.
 
 The output directory layout is:
@@ -1234,6 +1268,7 @@ generated/
     gitui/theme.ron
     gitui/<resolved-theme-name>.tmTheme
     mc/<resolved-theme-name>.ini
+    mc/filehighlight.ini
     dircolors/<resolved-theme-name>.dircolors
 ```
 
@@ -1287,6 +1322,7 @@ generated-themes/
     gitui/theme.ron
     gitui/<resolved-theme-name>.tmTheme
     mc/<resolved-theme-name>.ini
+    mc/filehighlight.ini
     dircolors/<resolved-theme-name>.dircolors
     helix/<theme-file-name>.toml
 ```
@@ -1323,7 +1359,10 @@ in
         theme = file "adwaita-dark/gitui/theme.ron";
         syntax = file "adwaita-dark/gitui/adwaita-dark.tmTheme";
       };
-      mc = file "adwaita-dark/mc/adwaita-dark.ini";
+      mc = {
+        skin = file "adwaita-dark/mc/adwaita-dark.ini";
+        filehighlight = file "adwaita-dark/mc/filehighlight.ini";
+      };
       dircolors = file "adwaita-dark/dircolors/adwaita-dark.dircolors";
       helix = file "adwaita-dark/helix/adwaita-dark.toml";
     };
@@ -1406,6 +1445,7 @@ tests/golden/base16/minimal.yaml
 tests/golden/bat/minimal.tmTheme
 tests/golden/gitui/theme.ron
 tests/golden/mc/minimal.ini
+tests/golden/mc/filehighlight.ini
 tests/golden/dircolors/minimal.dircolors
 ```
 

@@ -1,4 +1,6 @@
-use crate::file_kinds::{push_file_kind_source, resolve_file_kind_color, FileKind};
+use crate::file_kinds::{
+    file_extension_groups, push_file_kind_source, resolve_file_kind_color, FileKind,
+};
 use crate::report::{dropped_items, role_source, ExportReport, PreservedItem};
 use palette16::{color, Base16Palette};
 use semantic_roles::{role_color, Role, SemanticRoles};
@@ -10,6 +12,23 @@ pub fn export_mc_skin(
     palette: &Base16Palette,
     warnings: Vec<Warning>,
 ) -> (String, ExportReport) {
+    let export = export_mc(theme, roles, palette, warnings);
+    (export.skin_ini, export.report)
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct McExport {
+    pub skin_ini: String,
+    pub filehighlight_ini: String,
+    pub report: ExportReport,
+}
+
+pub fn export_mc(
+    theme: &ResolvedTheme,
+    roles: &SemanticRoles,
+    palette: &Base16Palette,
+    warnings: Vec<Warning>,
+) -> McExport {
     let mut output = String::new();
     output.push_str("[skin]\n");
     output.push_str(&format!(
@@ -42,7 +61,36 @@ pub fn export_mc_skin(
         dropped: mc_dropped_items(theme),
         warnings,
     };
-    (output, report)
+    McExport {
+        skin_ini: output,
+        filehighlight_ini: export_mc_filehighlight(),
+        report,
+    }
+}
+
+pub fn export_mc_filehighlight() -> String {
+    let mut output = String::new();
+    output.push_str("[executable]\n    type=FILE_EXE\n\n");
+    output.push_str("[directory]\n    type=DIR\n\n");
+    output.push_str("[device]\n    type=DEVICE\n\n");
+    output.push_str("[special]\n    type=SPECIAL\n\n");
+    output.push_str("[stalelink]\n    type=STALE_LINK\n\n");
+    output.push_str("[symlink]\n    type=SYMLINK\n\n");
+    output.push_str("[core]\n    regexp=^core\\\\.*\\\\d*$\n    extensions_case=true\n\n");
+
+    for group in mc_filehighlight_groups() {
+        output.push_str(&format!("[{}]\n", group.section));
+        output.push_str(&format!(
+            "    extensions={}\n\n",
+            group.extensions.join(";")
+        ));
+    }
+
+    output.push_str(
+        "# Hardlinks have lowest precedence to make them colored by file type or extension\n",
+    );
+    output.push_str("[hardlink]\n    type=HARDLINK\n");
+    output
 }
 
 #[derive(Debug, Clone)]
@@ -280,6 +328,72 @@ fn mc_sections() -> Vec<McSection> {
             ],
         },
     ]
+}
+
+#[derive(Debug)]
+struct McFilehighlightGroup {
+    section: &'static str,
+    extensions: Vec<&'static str>,
+}
+
+fn mc_filehighlight_groups() -> Vec<McFilehighlightGroup> {
+    let mut groups = vec![
+        McFilehighlightGroup {
+            section: "temp",
+            extensions: Vec::new(),
+        },
+        McFilehighlightGroup {
+            section: "archive",
+            extensions: Vec::new(),
+        },
+        McFilehighlightGroup {
+            section: "doc",
+            extensions: Vec::new(),
+        },
+        McFilehighlightGroup {
+            section: "source",
+            extensions: Vec::new(),
+        },
+        McFilehighlightGroup {
+            section: "media",
+            extensions: Vec::new(),
+        },
+        McFilehighlightGroup {
+            section: "graph",
+            extensions: Vec::new(),
+        },
+        McFilehighlightGroup {
+            section: "database",
+            extensions: Vec::new(),
+        },
+    ];
+
+    for group in file_extension_groups() {
+        let Some(section) = mc_filehighlight_section(group.kind) else {
+            continue;
+        };
+        if let Some(target) = groups.iter_mut().find(|target| target.section == section) {
+            target.extensions.extend(group.extensions);
+        }
+    }
+
+    groups
+        .into_iter()
+        .filter(|group| !group.extensions.is_empty())
+        .collect()
+}
+
+fn mc_filehighlight_section(kind: FileKind) -> Option<&'static str> {
+    match kind {
+        FileKind::Archive => Some("archive"),
+        FileKind::Document => Some("doc"),
+        FileKind::Source => Some("source"),
+        FileKind::Audio => Some("media"),
+        FileKind::ImageVideo => Some("graph"),
+        FileKind::Database => Some("database"),
+        FileKind::Temporary => Some("temp"),
+        _ => None,
+    }
 }
 
 fn render_entry(entry: &McEntry, roles: &SemanticRoles, palette: &Base16Palette) -> String {

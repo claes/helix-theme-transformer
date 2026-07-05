@@ -1,5 +1,6 @@
 use crate::file_kinds::{
-    file_kind_style, push_file_kind_source, resolve_file_kind_color, FileEmphasis, FileKind,
+    file_extension_groups, file_kind_style, push_file_kind_source, resolve_file_kind_color,
+    FileEmphasis, FileKind,
 };
 use crate::report::{role_source, ExportReport, PreservedItem};
 use palette16::{color, Base16Palette};
@@ -30,9 +31,9 @@ pub fn export_dircolors(
     }
 
     output.push('\n');
-    for group in extension_groups() {
+    for group in file_extension_groups() {
         output.push_str(&format!("# {}\n", group.name));
-        let sgr = render_sgr(group.style, roles, palette);
+        let sgr = render_sgr(style_from_kind(group.kind), roles, palette);
         for ext in group.extensions {
             output.push_str(&format!("*.{ext} {sgr}\n"));
         }
@@ -56,13 +57,6 @@ pub fn export_dircolors(
 #[derive(Debug, Clone, Copy)]
 struct LsEntry {
     key: &'static str,
-    style: LsStyle,
-}
-
-#[derive(Debug, Clone, Copy)]
-struct ExtensionGroup {
-    name: &'static str,
-    extensions: &'static [&'static str],
     style: LsStyle,
 }
 
@@ -137,56 +131,6 @@ fn core_entries() -> Vec<LsEntry> {
     ]
 }
 
-fn extension_groups() -> Vec<ExtensionGroup> {
-    vec![
-        ExtensionGroup {
-            name: "archives and compressed files",
-            extensions: &[
-                "7z", "ace", "alz", "apk", "arc", "arj", "bz", "bz2", "cab", "cpio", "crate",
-                "deb", "gz", "jar", "lha", "lrz", "lz", "lz4", "lzma", "lzo", "rar", "rpm", "tar",
-                "tbz", "tbz2", "tgz", "tlz", "txz", "xz", "zip", "zst",
-            ],
-            style: style_from_kind(FileKind::Archive),
-        },
-        ExtensionGroup {
-            name: "images and video",
-            extensions: &[
-                "avif", "bmp", "gif", "jpeg", "jpg", "jxl", "mkv", "mov", "mp4", "mpeg", "mpg",
-                "png", "svg", "svgz", "tif", "tiff", "webm", "webp",
-            ],
-            style: style_from_kind(FileKind::ImageVideo),
-        },
-        ExtensionGroup {
-            name: "audio",
-            extensions: &[
-                "aac", "flac", "m4a", "mid", "midi", "mp3", "ogg", "opus", "wav",
-            ],
-            style: style_from_kind(FileKind::Audio),
-        },
-        ExtensionGroup {
-            name: "documents",
-            extensions: &[
-                "djvu", "doc", "docx", "epub", "md", "odf", "odt", "pdf", "rtf", "tex", "txt",
-            ],
-            style: style_from_kind(FileKind::Document),
-        },
-        ExtensionGroup {
-            name: "source code",
-            extensions: &[
-                "c", "cc", "clj", "cpp", "cs", "css", "go", "h", "hpp", "html", "java", "js",
-                "jsx", "lua", "nix", "php", "py", "rb", "rs", "scss", "sh", "ts", "tsx", "vim",
-                "zig",
-            ],
-            style: style_from_kind(FileKind::Source),
-        },
-        ExtensionGroup {
-            name: "temporary and logs",
-            extensions: &["bak", "cache", "log", "old", "orig", "tmp"],
-            style: style_from_kind(FileKind::Temporary),
-        },
-    ]
-}
-
 fn style_from_kind(kind: FileKind) -> LsStyle {
     let style = file_kind_style(kind);
     let attrs = match style.emphasis {
@@ -256,9 +200,8 @@ fn dircolors_preserved_items(roles: &SemanticRoles) -> Vec<PreservedItem> {
         push_source(&mut items, roles, entry.key, entry.style.fg);
         push_source(&mut items, roles, entry.key, entry.style.bg);
     }
-    for group in extension_groups() {
-        push_source(&mut items, roles, group.name, group.style.fg);
-        push_source(&mut items, roles, group.name, group.style.bg);
+    for group in file_extension_groups() {
+        push_file_kind_source(&mut items, roles, group.name, group.kind);
     }
     items
 }

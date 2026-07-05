@@ -5,6 +5,7 @@ license.workspace = true
 version.workspace = true
 
 [dependencies]
+anyhow.workspace = true
 indexmap.workspace = true
 palette16 = { path = "../palette16" }
 semantic-roles = { path = "../semantic-roles" }
