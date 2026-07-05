@@ -50,7 +50,7 @@ done < <(find "$themes_dir" -mindepth 1 -maxdepth 1 -type d -print0 | sort -z)
 
 jq -Rn '
   [inputs | split("\t") | {theme: .[0], tool: .[1], attr: .[2], path: .[3]}] as $rows
-  | {themes: reduce $rows[] as $row ({}; .[$row.theme][$row.tool][$row.attr] = $row.path)}
+  | {themes: (reduce $rows[] as $row ({}; .[$row.theme][$row.tool][$row.attr] = $row.path))}
 ' < "$tmp_file" > "$out_file"
 
 jq . "$out_file" >/dev/null
