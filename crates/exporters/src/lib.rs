@@ -114,6 +114,10 @@ pub fn export_mc_format(
                 relative_path: "mc/filehighlight.ini".to_owned(),
                 contents: mc.filehighlight_ini,
             },
+            ExportedFile {
+                relative_path: "mc/colortable.env".to_owned(),
+                contents: mc.colortable_env,
+            },
         ],
         report: mc.report,
     }
@@ -212,6 +216,10 @@ mod tests {
         assert_eq!(
             mc.filehighlight_ini,
             include_str!("../../../tests/golden/mc/filehighlight.ini")
+        );
+        assert_eq!(
+            mc.colortable_env,
+            include_str!("../../../tests/golden/mc/colortable.env")
         );
     }
 

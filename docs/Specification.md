@@ -873,11 +873,12 @@ The gitui exporter must not require individual output file options for the RON o
 
 # 11. Midnight Commander Exporter
 
-Generate a Midnight Commander truecolor skin file and file classification file:
+Generate Midnight Commander skin, file classification, and color table files:
 
 ```text
 <out-dir>/<theme-file-name>/mc/<resolved-theme-name>.ini
 <out-dir>/<theme-file-name>/mc/filehighlight.ini
+<out-dir>/<theme-file-name>/mc/colortable.env
 ```
 
 Midnight Commander user skins are commonly installed under:
@@ -909,7 +910,8 @@ Derived 16-color palette
    ↓
 Midnight Commander exporter
    ├── <resolved-theme-name>.ini
-   └── filehighlight.ini
+   ├── filehighlight.ini
+   └── colortable.env
 ```
 
 ## 11.2 Skin header
@@ -1047,7 +1049,32 @@ temp
 
 `ImageVideo` maps to MC `graph`; `Audio` maps to MC `media`.
 
-## 11.7 Loss reporting
+## 11.7 Color table environment file
+
+Generate `colortable.env` as a shell source file that exports `MC_COLOR_TABLE`:
+
+```sh
+export MC_COLOR_TABLE='normal=white,default:selected=black,cyan'
+```
+
+Users can enable it with:
+
+```bash
+source generated-themes/my-theme/mc/colortable.env
+mc
+```
+
+The value must use the `mc(1)` `MC_COLOR_TABLE` format:
+
+```text
+<keyword>=<fgcolor>,<bgcolor>,<attributes>:<keyword>=...
+```
+
+Generate entries for the documented MC UI keys, including normal, selection, menu, dialog, error, help, viewer, editor, popup menu, button bar, and status bar keys.
+
+`MC_COLOR_TABLE` does not support truecolor hex values. Convert resolved semantic colors to the nearest supported 256-color MC token, preferring `gray0` to `gray23` for grayscale colors and `rgb000` to `rgb555` for color cube values.
+
+## 11.8 Loss reporting
 
 The Midnight Commander exporter should report:
 
@@ -1055,6 +1082,7 @@ The Midnight Commander exporter should report:
 2. Helix underline styles collapse to Midnight Commander `underline`.
 3. Helix `dim`, `crossed_out`, and `reversed` modifiers are not represented.
 4. Alpha is unsupported by Midnight Commander skins.
+5. `MC_COLOR_TABLE` quantizes truecolor values to MC 256-color tokens.
 
 ---
 
@@ -1269,6 +1297,7 @@ generated/
     gitui/<resolved-theme-name>.tmTheme
     mc/<resolved-theme-name>.ini
     mc/filehighlight.ini
+    mc/colortable.env
     dircolors/<resolved-theme-name>.dircolors
 ```
 
@@ -1323,6 +1352,7 @@ generated-themes/
     gitui/<resolved-theme-name>.tmTheme
     mc/<resolved-theme-name>.ini
     mc/filehighlight.ini
+    mc/colortable.env
     dircolors/<resolved-theme-name>.dircolors
     helix/<theme-file-name>.toml
 ```
@@ -1352,19 +1382,30 @@ in
 
   themes = {
     "adwaita-dark" = {
-      kitty = file "adwaita-dark/kitty/adwaita-dark.conf";
-      base16 = file "adwaita-dark/base16/adwaita-dark.yaml";
-      bat = file "adwaita-dark/bat/adwaita-dark.tmTheme";
+      kitty = {
+        theme = file "adwaita-dark/kitty/adwaita-dark.conf";
+      };
+      base16 = {
+        theme = file "adwaita-dark/base16/adwaita-dark.yaml";
+      };
+      bat = {
+        theme = file "adwaita-dark/bat/adwaita-dark.tmTheme";
+      };
       gitui = {
         theme = file "adwaita-dark/gitui/theme.ron";
         syntax = file "adwaita-dark/gitui/adwaita-dark.tmTheme";
       };
       mc = {
-        skin = file "adwaita-dark/mc/adwaita-dark.ini";
+        theme = file "adwaita-dark/mc/adwaita-dark.ini";
         filehighlight = file "adwaita-dark/mc/filehighlight.ini";
+        colortable = file "adwaita-dark/mc/colortable.env";
       };
-      dircolors = file "adwaita-dark/dircolors/adwaita-dark.dircolors";
-      helix = file "adwaita-dark/helix/adwaita-dark.toml";
+      dircolors = {
+        theme = file "adwaita-dark/dircolors/adwaita-dark.dircolors";
+      };
+      helix = {
+        theme = file "adwaita-dark/helix/adwaita-dark.toml";
+      };
     };
   };
 }
@@ -1392,7 +1433,7 @@ let
   httThemes = import htt-themes-nix { inherit pkgs; };
 in {
   xdg.configFile."kitty/current-theme.conf".source =
-    httThemes.themes."adwaita-dark".kitty;
+    httThemes.themes."adwaita-dark".kitty.theme;
 }
 ```
 
@@ -1446,6 +1487,7 @@ tests/golden/bat/minimal.tmTheme
 tests/golden/gitui/theme.ron
 tests/golden/mc/minimal.ini
 tests/golden/mc/filehighlight.ini
+tests/golden/mc/colortable.env
 tests/golden/dircolors/minimal.dircolors
 ```
 
@@ -1483,7 +1525,7 @@ The tool is acceptable when:
 6. It exports a Base16-like 16-color palette.
 7. It exports a valid bat `.tmTheme` theme.
 8. It exports a valid gitui theme directory containing `theme.ron` and a matching `.tmTheme` syntax file.
-9. It exports a valid Midnight Commander truecolor skin.
+9. It exports valid Midnight Commander skin, file highlighting, and color table files.
 10. It exports a valid GNU `dircolors` database for LS_COLORS.
 11. It emits a clear loss report.
 12. It includes unit tests and golden output tests.

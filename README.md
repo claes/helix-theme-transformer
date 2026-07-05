@@ -45,7 +45,7 @@ let
   httThemes = import htt-themes-nix { inherit pkgs; };
 in {
   xdg.configFile."kitty/current-theme.conf".source =
-    httThemes.themes."adwaita-dark".kitty;
+    httThemes.themes."adwaita-dark".kitty.theme;
 }
 ```
 
