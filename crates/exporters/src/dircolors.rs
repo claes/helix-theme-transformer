@@ -1,3 +1,7 @@
+use crate::file_kinds::{
+    file_extension_groups, file_kind_style, push_file_kind_source, resolve_file_kind_color,
+    FileEmphasis, FileKind,
+};
 use crate::report::{role_source, ExportReport, PreservedItem};
 use palette16::{color, Base16Palette};
 use semantic_roles::{role_color, Role, SemanticRoles};
@@ -27,9 +31,9 @@ pub fn export_dircolors(
     }
 
     output.push('\n');
-    for group in extension_groups() {
+    for group in file_extension_groups() {
         output.push_str(&format!("# {}\n", group.name));
-        let sgr = render_sgr(group.style, roles, palette);
+        let sgr = render_sgr(style_from_kind(group.kind), roles, palette);
         for ext in group.extensions {
             output.push_str(&format!("*.{ext} {sgr}\n"));
         }
@@ -57,13 +61,6 @@ struct LsEntry {
 }
 
 #[derive(Debug, Clone, Copy)]
-struct ExtensionGroup {
-    name: &'static str,
-    extensions: &'static [&'static str],
-    style: LsStyle,
-}
-
-#[derive(Debug, Clone, Copy)]
 struct LsStyle {
     attrs: &'static [&'static str],
     fg: Option<LsColor>,
@@ -71,30 +68,26 @@ struct LsStyle {
 }
 
 #[derive(Debug, Clone, Copy)]
-struct LsColor {
-    roles: &'static [Role],
-    fallback_base: &'static str,
+enum LsColor {
+    Role {
+        roles: &'static [Role],
+        fallback_base: &'static str,
+    },
+    FileKind(FileKind),
 }
 
-impl LsColor {
-    const fn new(roles: &'static [Role], fallback_base: &'static str) -> Self {
-        Self {
-            roles,
-            fallback_base,
-        }
-    }
-}
-
-const BACKGROUND: LsColor = LsColor::new(&[Role::Background], "base00");
-const FOREGROUND: LsColor = LsColor::new(&[Role::Foreground], "base05");
-const MUTED_FOREGROUND: LsColor = LsColor::new(&[Role::MutedForeground], "base03");
-const KEYWORD: LsColor = LsColor::new(&[Role::Keyword], "base0E");
-const FUNCTION: LsColor = LsColor::new(&[Role::Function, Role::GitAdded], "base0D");
-const STRING: LsColor = LsColor::new(&[Role::String], "base0B");
-const SPECIAL: LsColor = LsColor::new(&[Role::Special], "base0C");
-const ERROR: LsColor = LsColor::new(&[Role::Error], "base08");
-const WARNING: LsColor = LsColor::new(&[Role::Warning, Role::Type], "base0A");
-const GIT_ADDED: LsColor = LsColor::new(&[Role::GitAdded], "base0B");
+const BACKGROUND: LsColor = LsColor::Role {
+    roles: &[Role::Background],
+    fallback_base: "base00",
+};
+const FOREGROUND: LsColor = LsColor::Role {
+    roles: &[Role::Foreground],
+    fallback_base: "base05",
+};
+const FILE_SETUID: LsColor = LsColor::FileKind(FileKind::Setuid);
+const FILE_SETGID: LsColor = LsColor::FileKind(FileKind::Setgid);
+const FILE_WRITABLE_DIR: LsColor = LsColor::FileKind(FileKind::WritableDir);
+const FILE_STICKY_DIR: LsColor = LsColor::FileKind(FileKind::StickyDir);
 
 const BOLD: &[&str] = &["01"];
 
@@ -109,77 +102,46 @@ const fn entry(key: &'static str, style: LsStyle) -> LsEntry {
 fn core_entries() -> Vec<LsEntry> {
     vec![
         entry("RESET", style(&[], None, None)),
-        entry("DIR", style(BOLD, Some(FUNCTION), None)),
-        entry("LINK", style(BOLD, Some(SPECIAL), None)),
+        entry("DIR", style_from_kind(FileKind::Directory)),
+        entry("LINK", style_from_kind(FileKind::Symlink)),
         entry("MULTIHARDLINK", style(&[], Some(FOREGROUND), None)),
-        entry("FIFO", style(&[], Some(WARNING), None)),
-        entry("SOCK", style(BOLD, Some(KEYWORD), None)),
-        entry("DOOR", style(BOLD, Some(KEYWORD), None)),
-        entry("BLK", style(BOLD, Some(WARNING), None)),
-        entry("CHR", style(BOLD, Some(WARNING), None)),
-        entry("ORPHAN", style(BOLD, Some(ERROR), None)),
-        entry("MISSING", style(&[], Some(MUTED_FOREGROUND), None)),
-        entry("SETUID", style(BOLD, Some(FOREGROUND), Some(ERROR))),
-        entry("SETGID", style(BOLD, Some(BACKGROUND), Some(WARNING))),
+        entry("FIFO", style_from_kind(FileKind::Fifo)),
+        entry("SOCK", style_from_kind(FileKind::Socket)),
+        entry("DOOR", style_from_kind(FileKind::Socket)),
+        entry("BLK", style_from_kind(FileKind::Device)),
+        entry("CHR", style_from_kind(FileKind::Device)),
+        entry("ORPHAN", style_from_kind(FileKind::BrokenLink)),
+        entry("MISSING", style_from_kind(FileKind::Missing)),
+        entry("SETUID", style(BOLD, Some(FOREGROUND), Some(FILE_SETUID))),
+        entry("SETGID", style(BOLD, Some(BACKGROUND), Some(FILE_SETGID))),
         entry("CAPABILITY", style(&[], Some(FOREGROUND), None)),
         entry(
             "STICKY_OTHER_WRITABLE",
-            style(&[], Some(BACKGROUND), Some(GIT_ADDED)),
+            style(&[], Some(BACKGROUND), Some(FILE_WRITABLE_DIR)),
         ),
-        entry("OTHER_WRITABLE", style(&[], Some(SPECIAL), Some(GIT_ADDED))),
-        entry("STICKY", style(&[], Some(FOREGROUND), Some(SPECIAL))),
-        entry("EXEC", style(BOLD, Some(FUNCTION), None)),
+        entry(
+            "OTHER_WRITABLE",
+            style(&[], Some(FILE_STICKY_DIR), Some(FILE_WRITABLE_DIR)),
+        ),
+        entry(
+            "STICKY",
+            style(&[], Some(FOREGROUND), Some(FILE_STICKY_DIR)),
+        ),
+        entry("EXEC", style_from_kind(FileKind::Executable)),
     ]
 }
 
-fn extension_groups() -> Vec<ExtensionGroup> {
-    vec![
-        ExtensionGroup {
-            name: "archives and compressed files",
-            extensions: &[
-                "7z", "ace", "alz", "apk", "arc", "arj", "bz", "bz2", "cab", "cpio", "crate",
-                "deb", "gz", "jar", "lha", "lrz", "lz", "lz4", "lzma", "lzo", "rar", "rpm", "tar",
-                "tbz", "tbz2", "tgz", "tlz", "txz", "xz", "zip", "zst",
-            ],
-            style: style(BOLD, Some(ERROR), None),
-        },
-        ExtensionGroup {
-            name: "images and video",
-            extensions: &[
-                "avif", "bmp", "gif", "jpeg", "jpg", "jxl", "mkv", "mov", "mp4", "mpeg", "mpg",
-                "png", "svg", "svgz", "tif", "tiff", "webm", "webp",
-            ],
-            style: style(BOLD, Some(SPECIAL), None),
-        },
-        ExtensionGroup {
-            name: "audio",
-            extensions: &[
-                "aac", "flac", "m4a", "mid", "midi", "mp3", "ogg", "opus", "wav",
-            ],
-            style: style(&[], Some(SPECIAL), None),
-        },
-        ExtensionGroup {
-            name: "documents",
-            extensions: &[
-                "djvu", "doc", "docx", "epub", "md", "odf", "odt", "pdf", "rtf", "tex", "txt",
-            ],
-            style: style(&[], Some(STRING), None),
-        },
-        ExtensionGroup {
-            name: "source code",
-            extensions: &[
-                "c", "cc", "clj", "cpp", "cs", "css", "go", "h", "hpp", "html", "java", "js",
-                "jsx", "lua", "nix", "php", "py", "rb", "rs", "scss", "sh", "ts", "tsx", "vim",
-                "zig",
-            ],
-            style: style(&[], Some(KEYWORD), None),
-        },
-        ExtensionGroup {
-            name: "temporary and logs",
-            extensions: &["bak", "cache", "log", "old", "orig", "tmp"],
-            style: style(&[], Some(MUTED_FOREGROUND), None),
-        },
-    ]
+fn style_from_kind(kind: FileKind) -> LsStyle {
+    let style = file_kind_style(kind);
+    let attrs = match style.emphasis {
+        FileEmphasis::Bold | FileEmphasis::Dangerous => BOLD,
+        FileEmphasis::Normal | FileEmphasis::Muted | FileEmphasis::Background => &[],
+    };
+    LsStyle {
+        attrs,
+        fg: Some(LsColor::FileKind(kind)),
+        bg: None,
+    }
 }
 
 fn render_sgr(style: LsStyle, roles: &SemanticRoles, palette: &Base16Palette) -> String {
@@ -216,12 +178,20 @@ fn resolve_color<'a>(
     roles: &'a SemanticRoles,
     palette: &'a Base16Palette,
 ) -> &'a str {
-    for role in ls_color.roles {
-        if let Some(color) = role_color(roles, *role) {
-            return color;
+    match ls_color {
+        LsColor::Role {
+            roles: color_roles,
+            fallback_base,
+        } => {
+            for role in color_roles {
+                if let Some(color) = role_color(roles, *role) {
+                    return color;
+                }
+            }
+            color(palette, fallback_base)
         }
+        LsColor::FileKind(kind) => resolve_file_kind_color(kind, roles, palette),
     }
-    color(palette, ls_color.fallback_base)
 }
 
 fn dircolors_preserved_items(roles: &SemanticRoles) -> Vec<PreservedItem> {
@@ -230,9 +200,8 @@ fn dircolors_preserved_items(roles: &SemanticRoles) -> Vec<PreservedItem> {
         push_source(&mut items, roles, entry.key, entry.style.fg);
         push_source(&mut items, roles, entry.key, entry.style.bg);
     }
-    for group in extension_groups() {
-        push_source(&mut items, roles, group.name, group.style.fg);
-        push_source(&mut items, roles, group.name, group.style.bg);
+    for group in file_extension_groups() {
+        push_file_kind_source(&mut items, roles, group.name, group.kind);
     }
     items
 }
@@ -246,15 +215,22 @@ fn push_source(
     let Some(color) = color else {
         return;
     };
-    for role in color.roles {
-        if let Some(value) = roles.get(role) {
-            if let Some(source) = role_source(value) {
-                items.push(PreservedItem {
-                    target: target.to_owned(),
-                    source,
-                });
-                break;
+    match color {
+        LsColor::Role {
+            roles: color_roles, ..
+        } => {
+            for role in color_roles {
+                if let Some(value) = roles.get(role) {
+                    if let Some(source) = role_source(value) {
+                        items.push(PreservedItem {
+                            target: target.to_owned(),
+                            source,
+                        });
+                        break;
+                    }
+                }
             }
         }
+        LsColor::FileKind(kind) => push_file_kind_source(items, roles, target, kind),
     }
 }

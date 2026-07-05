@@ -13,7 +13,9 @@ Supported exports:
 
 Since Helix themes are targetting language syntax features rather than specific
 base colors, when converting to a theme format that is centered on colors,
-those colors are generated heuristically.
+those colors are generated heuristically. This means that applications may not
+always be colored accurately relative the original theme. On the other hand, it will
+be easier to maintain consistent theming between applications. 
  
 ## Usage
 
@@ -45,7 +47,7 @@ let
   httThemes = import htt-themes-nix { inherit pkgs; };
 in {
   xdg.configFile."kitty/current-theme.conf".source =
-    httThemes.themes."adwaita-dark".kitty;
+    httThemes.themes."adwaita-dark".kitty.theme;
 }
 ```
 

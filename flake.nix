@@ -40,7 +40,7 @@
             pname = "helix-theme-transformer";
             version = "0.1.0";
             inherit src;
-            cargoHash = "sha256-RxYOFPmPNrAa4bU5w7RJJqc6SY2hrKN9gxo6sPQEFGs=";
+            cargoHash = "sha256-DMoRs9l7VDcZTY0wzfoVuoAzlFKb2Mz6m1R5KdM81E4=";
             nativeBuildInputs = [
               pkgs.pkg-config
             ];

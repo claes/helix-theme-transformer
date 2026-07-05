@@ -54,6 +54,19 @@ emit_file_attr() {
   fi
 }
 
+emit_tool_attr() {
+  local indent="$1"
+  local tool="$2"
+  local attr="$3"
+  local path="$4"
+
+  if [[ -f "$themes_dir/$path" ]]; then
+    printf '%s%s = {\n' "$indent" "$tool"
+    emit_file_attr "$indent  " "$attr" "$path"
+    printf '%s};\n' "$indent"
+  fi
+}
+
 {
   printf '{ pkgs }:\n'
   printf '\n'
@@ -80,9 +93,9 @@ emit_file_attr() {
     escaped_theme_name="$(nix_string "$theme_name")"
 
     printf '    "%s" = {\n' "$escaped_theme_name"
-    emit_file_attr "      " "kitty" "$theme_name/kitty/$theme_name.conf"
-    emit_file_attr "      " "base16" "$theme_name/base16/$theme_name.yaml"
-    emit_file_attr "      " "bat" "$theme_name/bat/$theme_name.tmTheme"
+    emit_tool_attr "      " "kitty" "theme" "$theme_name/kitty/$theme_name.conf"
+    emit_tool_attr "      " "base16" "theme" "$theme_name/base16/$theme_name.yaml"
+    emit_tool_attr "      " "bat" "theme" "$theme_name/bat/$theme_name.tmTheme"
 
     if [[ -f "$themes_dir/$theme_name/gitui/theme.ron" || -f "$themes_dir/$theme_name/gitui/$theme_name.tmTheme" ]]; then
       printf '      gitui = {\n'
@@ -91,9 +104,16 @@ emit_file_attr() {
       printf '      };\n'
     fi
 
-    emit_file_attr "      " "mc" "$theme_name/mc/$theme_name.ini"
-    emit_file_attr "      " "dircolors" "$theme_name/dircolors/$theme_name.dircolors"
-    emit_file_attr "      " "helix" "$theme_name/helix/$theme_name.toml"
+    if [[ -f "$themes_dir/$theme_name/mc/$theme_name.ini" || -f "$themes_dir/$theme_name/mc/filehighlight.ini" || -f "$themes_dir/$theme_name/mc/colortable.env" ]]; then
+      printf '      mc = {\n'
+      emit_file_attr "        " "theme" "$theme_name/mc/$theme_name.ini"
+      emit_file_attr "        " "filehighlight" "$theme_name/mc/filehighlight.ini"
+      emit_file_attr "        " "colortable" "$theme_name/mc/colortable.env"
+      printf '      };\n'
+    fi
+
+    emit_tool_attr "      " "dircolors" "theme" "$theme_name/dircolors/$theme_name.dircolors"
+    emit_tool_attr "      " "helix" "theme" "$theme_name/helix/$theme_name.toml"
     printf '    };\n'
   done < <(find "$themes_dir" -mindepth 1 -maxdepth 1 -type d -print0 | sort -z)
 

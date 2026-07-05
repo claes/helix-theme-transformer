@@ -2,8 +2,8 @@ use anyhow::{Context, Result};
 use camino::Utf8PathBuf;
 use clap::{Parser, Subcommand};
 use exporters::{
-    export_base16_yaml, export_bat_tmtheme, export_dircolors, export_gitui, export_kitty,
-    export_mc_skin, render_report,
+    export_base16_format, export_bat_format, export_dircolors_format, export_gitui_format,
+    export_kitty_format, export_mc_format, render_report,
 };
 use helix_theme::resolve_file;
 use palette16::extract_base16;
@@ -109,66 +109,15 @@ fn main() -> Result<()> {
             }
 
             let theme_name = file_stem(&resolved.name);
-            let (kitty, kitty_report) = export_kitty(&resolved, &roles, &palette, warnings.clone());
-            let base16 = export_base16_yaml(&palette)?;
-            let base16_report = exporters::ExportReport {
-                exporter: "base16".to_owned(),
-                source: resolved.source_path.to_string(),
-                preserved: Vec::new(),
-                dropped: Vec::new(),
-                warnings: warnings.clone(),
-            };
-            let (bat, bat_report) =
-                export_bat_tmtheme(&resolved, &roles, &palette, warnings.clone());
-            let gitui = export_gitui(&resolved, &roles, &palette, warnings.clone());
-            let (mc, mc_report) = export_mc_skin(&resolved, &roles, &palette, warnings.clone());
-            let (dircolors, dircolors_report) =
-                export_dircolors(&resolved, &roles, &palette, warnings);
-            let generated = GeneratedExports {
-                files: vec![
-                    GeneratedFile {
-                        relative_path: Utf8PathBuf::from(format!("kitty/{theme_name}.conf")),
-                        contents: kitty,
-                    },
-                    GeneratedFile {
-                        relative_path: Utf8PathBuf::from(format!("base16/{theme_name}.yaml")),
-                        contents: base16,
-                    },
-                    GeneratedFile {
-                        relative_path: Utf8PathBuf::from(format!("bat/{theme_name}.tmTheme")),
-                        contents: bat,
-                    },
-                    GeneratedFile {
-                        relative_path: Utf8PathBuf::from("gitui/theme.ron"),
-                        contents: gitui.theme_ron,
-                    },
-                    GeneratedFile {
-                        relative_path: Utf8PathBuf::from(format!(
-                            "gitui/{}",
-                            gitui.syntax_file_name
-                        )),
-                        contents: gitui.syntax_tmtheme,
-                    },
-                    GeneratedFile {
-                        relative_path: Utf8PathBuf::from(format!("mc/{theme_name}.ini")),
-                        contents: mc,
-                    },
-                    GeneratedFile {
-                        relative_path: Utf8PathBuf::from(format!(
-                            "dircolors/{theme_name}.dircolors"
-                        )),
-                        contents: dircolors,
-                    },
-                ],
-                reports: vec![
-                    kitty_report,
-                    base16_report,
-                    bat_report,
-                    gitui.report,
-                    mc_report,
-                    dircolors_report,
-                ],
-            };
+            let formats = vec![
+                export_kitty_format(&theme_name, &resolved, &roles, &palette, warnings.clone()),
+                export_base16_format(&theme_name, &resolved, &palette, warnings.clone())?,
+                export_bat_format(&theme_name, &resolved, &roles, &palette, warnings.clone()),
+                export_gitui_format(&resolved, &roles, &palette, warnings.clone()),
+                export_mc_format(&theme_name, &resolved, &roles, &palette, warnings.clone()),
+                export_dircolors_format(&theme_name, &resolved, &roles, &palette, warnings),
+            ];
+            let generated = GeneratedExports::from_formats(formats);
 
             if let Some(path) = report_json {
                 let json = serde_json::to_string_pretty(&generated.reports)?;
@@ -183,7 +132,7 @@ fn main() -> Result<()> {
             if !dry_run {
                 let export_root = out_dir.join(theme_dir_name);
                 for export in generated.files {
-                    let path = export_root.join(&export.relative_path);
+                    let path = export_root.join(Utf8PathBuf::from(&export.relative_path));
                     if let Some(parent) = path.parent() {
                         std::fs::create_dir_all(parent)
                             .with_context(|| format!("failed to create {parent}"))?;
@@ -198,13 +147,20 @@ fn main() -> Result<()> {
 }
 
 struct GeneratedExports {
-    files: Vec<GeneratedFile>,
+    files: Vec<exporters::ExportedFile>,
     reports: Vec<exporters::ExportReport>,
 }
 
-struct GeneratedFile {
-    relative_path: Utf8PathBuf,
-    contents: String,
+impl GeneratedExports {
+    fn from_formats(formats: Vec<exporters::ExportedFormat>) -> Self {
+        let mut files = Vec::new();
+        let mut reports = Vec::new();
+        for format in formats {
+            files.extend(format.files);
+            reports.push(format.report);
+        }
+        Self { files, reports }
+    }
 }
 
 fn file_stem(name: &str) -> String {

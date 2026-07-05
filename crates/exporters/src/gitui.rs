@@ -1,4 +1,5 @@
 use crate::bat::export_bat_tmtheme;
+use crate::file_kinds::{push_file_kind_source, resolve_file_kind_color, FileKind};
 use crate::report::{dropped_items, role_source, ExportReport, PreservedItem};
 use palette16::{color, Base16Palette};
 use semantic_roles::{role_color, Role, SemanticRoles};
@@ -44,7 +45,7 @@ fn render_theme_ron(syntax_name: &str, roles: &SemanticRoles, palette: &Base16Pa
         output.push_str(&format!(
             "  {}: Some(\"{}\"),\n",
             mapping.field,
-            color_for_mapping(mapping, roles, palette)
+            color_for_mapping(&mapping, roles, palette)
         ));
     }
     output.push_str(&format!(
@@ -58,118 +59,112 @@ fn render_theme_ron(syntax_name: &str, roles: &SemanticRoles, palette: &Base16Pa
 #[derive(Debug, Clone, Copy)]
 struct GituiMapping {
     field: &'static str,
-    roles: &'static [Role],
-    fallback_base: &'static str,
+    color: GituiColor,
 }
 
-fn gitui_mappings() -> &'static [GituiMapping] {
-    &[
+#[derive(Debug, Clone, Copy)]
+enum GituiColor {
+    Role {
+        roles: &'static [Role],
+        fallback_base: &'static str,
+    },
+    FileKind(FileKind),
+}
+
+fn gitui_mappings() -> Vec<GituiMapping> {
+    vec![
         GituiMapping {
             field: "selected_tab",
-            roles: &[Role::Special],
-            fallback_base: "base0C",
+            color: role(&[Role::Special], "base0C"),
         },
         GituiMapping {
             field: "command_fg",
-            roles: &[Role::Foreground],
-            fallback_base: "base05",
+            color: role(&[Role::Foreground], "base05"),
         },
         GituiMapping {
             field: "selection_bg",
-            roles: &[Role::Selection],
-            fallback_base: "base02",
+            color: role(&[Role::Selection], "base02"),
         },
         GituiMapping {
             field: "selection_fg",
-            roles: &[Role::Foreground],
-            fallback_base: "base05",
+            color: role(&[Role::Foreground], "base05"),
         },
         GituiMapping {
             field: "cmdbar_bg",
-            roles: &[Role::Surface],
-            fallback_base: "base01",
+            color: role(&[Role::Surface], "base01"),
         },
         GituiMapping {
             field: "disabled_fg",
-            roles: &[Role::MutedForeground],
-            fallback_base: "base03",
+            color: role(&[Role::MutedForeground], "base03"),
         },
         GituiMapping {
             field: "diff_line_add",
-            roles: &[Role::GitAdded],
-            fallback_base: "base0B",
+            color: GituiColor::FileKind(FileKind::GitAdded),
         },
         GituiMapping {
             field: "diff_line_delete",
-            roles: &[Role::GitRemoved, Role::Error],
-            fallback_base: "base08",
+            color: GituiColor::FileKind(FileKind::GitRemoved),
         },
         GituiMapping {
             field: "diff_file_added",
-            roles: &[Role::GitAdded],
-            fallback_base: "base0B",
+            color: GituiColor::FileKind(FileKind::GitAdded),
         },
         GituiMapping {
             field: "diff_file_removed",
-            roles: &[Role::GitRemoved, Role::Error],
-            fallback_base: "base08",
+            color: GituiColor::FileKind(FileKind::GitRemoved),
         },
         GituiMapping {
             field: "diff_file_moved",
-            roles: &[Role::Special],
-            fallback_base: "base0C",
+            color: GituiColor::FileKind(FileKind::GitMoved),
         },
         GituiMapping {
             field: "diff_file_modified",
-            roles: &[Role::GitModified, Role::Warning],
-            fallback_base: "base0A",
+            color: GituiColor::FileKind(FileKind::GitModified),
         },
         GituiMapping {
             field: "commit_hash",
-            roles: &[Role::Constant],
-            fallback_base: "base09",
+            color: role(&[Role::Constant], "base09"),
         },
         GituiMapping {
             field: "commit_time",
-            roles: &[Role::Info, Role::MutedForeground],
-            fallback_base: "base03",
+            color: role(&[Role::Info, Role::MutedForeground], "base03"),
         },
         GituiMapping {
             field: "commit_author",
-            roles: &[Role::Variable, Role::Function],
-            fallback_base: "base0D",
+            color: role(&[Role::Variable, Role::Function], "base0D"),
         },
         GituiMapping {
             field: "danger_fg",
-            roles: &[Role::Error],
-            fallback_base: "base08",
+            color: role(&[Role::Error], "base08"),
         },
         GituiMapping {
             field: "push_gauge_bg",
-            roles: &[Role::Selection],
-            fallback_base: "base02",
+            color: role(&[Role::Selection], "base02"),
         },
         GituiMapping {
             field: "push_gauge_fg",
-            roles: &[Role::Foreground],
-            fallback_base: "base05",
+            color: role(&[Role::Foreground], "base05"),
         },
         GituiMapping {
             field: "tag_fg",
-            roles: &[Role::Special],
-            fallback_base: "base0C",
+            color: role(&[Role::Special], "base0C"),
         },
         GituiMapping {
             field: "branch_fg",
-            roles: &[Role::Type],
-            fallback_base: "base0A",
+            color: role(&[Role::Type], "base0A"),
         },
         GituiMapping {
             field: "block_title_focused",
-            roles: &[Role::BrightForeground],
-            fallback_base: "base07",
+            color: role(&[Role::BrightForeground], "base07"),
         },
     ]
+}
+
+const fn role(roles: &'static [Role], fallback_base: &'static str) -> GituiColor {
+    GituiColor::Role {
+        roles,
+        fallback_base,
+    }
 }
 
 fn color_for_mapping<'a>(
@@ -177,26 +172,43 @@ fn color_for_mapping<'a>(
     roles: &'a SemanticRoles,
     palette: &'a Base16Palette,
 ) -> &'a str {
-    for role in mapping.roles {
-        if let Some(color) = role_color(roles, *role) {
-            return color;
+    match mapping.color {
+        GituiColor::Role {
+            roles: color_roles,
+            fallback_base,
+        } => {
+            for role in color_roles {
+                if let Some(color) = role_color(roles, *role) {
+                    return color;
+                }
+            }
+            color(palette, fallback_base)
         }
+        GituiColor::FileKind(kind) => resolve_file_kind_color(kind, roles, palette),
     }
-    color(palette, mapping.fallback_base)
 }
 
 fn gitui_preserved_items(roles: &SemanticRoles) -> Vec<PreservedItem> {
     let mut items = Vec::new();
     for mapping in gitui_mappings() {
-        for role in mapping.roles {
-            if let Some(value) = roles.get(role) {
-                if let Some(source) = role_source(value) {
-                    items.push(PreservedItem {
-                        target: mapping.field.to_owned(),
-                        source,
-                    });
-                    break;
+        match mapping.color {
+            GituiColor::Role {
+                roles: color_roles, ..
+            } => {
+                for role in color_roles {
+                    if let Some(value) = roles.get(role) {
+                        if let Some(source) = role_source(value) {
+                            items.push(PreservedItem {
+                                target: mapping.field.to_owned(),
+                                source,
+                            });
+                            break;
+                        }
+                    }
                 }
+            }
+            GituiColor::FileKind(kind) => {
+                push_file_kind_source(&mut items, roles, mapping.field, kind);
             }
         }
     }

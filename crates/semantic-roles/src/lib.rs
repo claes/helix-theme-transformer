@@ -152,13 +152,9 @@ fn mappings(role: Role) -> &'static [(&'static str, SourceProperty)] {
             ("ui.window", Bg),
         ],
         Role::Selection => &[("ui.selection", Bg), ("ui.cursor.select", Bg)],
-        Role::Foreground => &[("ui.text", Fg), ("ui.text.focus", Fg)],
+        Role::Foreground => &[("ui.text", Fg), ("ui.background", Fg)],
         Role::MutedForeground => &[("comment", Fg), ("ui.linenr", Fg), ("ui.text.inactive", Fg)],
-        Role::BrightForeground => &[
-            ("ui.cursor", Fg),
-            ("ui.text.focus", Fg),
-            ("markup.heading", Fg),
-        ],
+        Role::BrightForeground => &[],
         Role::Cursor => &[
             ("ui.cursor.primary", Bg),
             ("ui.cursor", Bg),
@@ -270,5 +266,34 @@ mod tests {
         let error = roles.get(&Role::Error).unwrap();
         assert_eq!(error.color.as_deref(), Some("#ff0000"));
         assert_eq!(error.source_property, Some(SourceProperty::UnderlineColor));
+    }
+
+    #[test]
+    fn foreground_does_not_use_focused_text_accent() {
+        let theme = ResolvedTheme {
+            name: "demo".to_owned(),
+            source_path: Utf8PathBuf::from("demo.toml"),
+            palette: IndexMap::new(),
+            scopes: indexmap! {
+                "ui.background".to_owned() => Style {
+                    fg: Some("#c7c9d1".to_owned()),
+                    bg: Some("#161822".to_owned()),
+                    ..Style::default()
+                },
+                "ui.text.focus".to_owned() => Style {
+                    fg: Some("#e2a578".to_owned()),
+                    ..Style::default()
+                },
+            },
+            warnings: Vec::new(),
+        };
+        let (roles, _) = derive_roles(&theme);
+        let foreground = roles.get(&Role::Foreground).unwrap();
+        assert_eq!(foreground.color.as_deref(), Some("#c7c9d1"));
+        assert_eq!(foreground.source_scope.as_deref(), Some("ui.background"));
+        assert_eq!(
+            roles.get(&Role::BrightForeground).unwrap().confidence,
+            Confidence::Missing
+        );
     }
 }
