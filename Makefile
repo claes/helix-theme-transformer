@@ -1,4 +1,6 @@
-.PHONY: build check clippy fmt test download-helix-themes generate-themes clean distclean
+.PHONY: build check clippy fmt test download-helix-themes generate-themes release-nix clean distclean
+
+RELEASE_TAG ?= generated-themes-latest
 
 build:
 	cargo build
@@ -18,11 +20,25 @@ test:
 download-helix-themes:
 	./scripts/download-helix-themes.sh
 
-generate-themes: build download-helix-themes
+helix-themes:
+	./scripts/download-helix-themes.sh
+
+generated-themes: build helix-themes
 	./scripts/generate-from-helix-themes.sh
+
+generate-themes: generated-themes
+
+generated-themes.zip: generated-themes
+	zip -r generated-themes.zip generated-themes
+
+generated-themes.nix: generated-themes.zip
+	./scripts/create-release-nix.sh "$(RELEASE_TAG)"
+
+release-nix: generated-themes.nix
 
 clean:
 	rm -rf generated-themes
+	rm -f generated-themes.zip generated-themes.nix
 
 distclean: clean
 	rm -rf helix-themes

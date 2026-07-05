@@ -92,6 +92,8 @@
               pkgs.rust-analyzer
               pkgs.rustc
               pkgs.rustfmt
+              pkgs.unzip
+              pkgs.zip
             ];
 
             RUST_SRC_PATH = "${pkgs.rustPlatform.rustLibSrc}";
