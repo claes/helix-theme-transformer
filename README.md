@@ -11,14 +11,26 @@ Supported exports:
 - Midnight Commander
 - dircolors
 
+Since Helix themes are targetting language syntax features rather than specific
+base colors, when converting to a theme format that is centered on colors,
+those colors are generated heuristically.
+ 
 ## Usage
 
 Export one Helix theme into all supported formats:
 
 ```bash
-htt export path/to/theme.toml --out-dir generated-themes
+htt export path/to/helix/theme.toml --out-dir generated-themes-directory
 ```
 
-The output directory contains one directory named after the source theme file.
+The output directory will contain one directory named after the source theme file.
 Each supported format is written into its own subdirectory.
 
+# Contributing
+
+This program has been created with help of OpenAI codex. Pull requests for export to
+other tools are welcome. Make sure to update Specification.md as well as test cases.
+
+# License
+
+This program is distributed under the same license as Helix editor, MPL-2.0.  
