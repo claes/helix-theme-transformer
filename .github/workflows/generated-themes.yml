@@ -22,6 +22,9 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+
       - name: Cache Cargo build output
         uses: actions/cache@v4
         with:
@@ -31,17 +34,18 @@ jobs:
             target
           key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Generate theme files
-        run: make generate-themes
-
-      - name: Package generated themes
-        run: zip -r generated-themes.zip generated-themes
+      - name: Generate release artifacts
+        env:
+          RELEASE_TAG: ${{ inputs.release-tag }}
+        run: make release-nix
 
       - name: Upload generated themes artifact
         uses: actions/upload-artifact@v4
         with:
           name: generated-themes
-          path: generated-themes.zip
+          path: |
+            generated-themes.zip
+            generated-themes.nix
 
       - name: Create or update GitHub Release
         env:
@@ -49,9 +53,9 @@ jobs:
           RELEASE_TAG: ${{ inputs.release-tag }}
         run: |
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            gh release upload "$RELEASE_TAG" generated-themes.zip --clobber
+            gh release upload "$RELEASE_TAG" generated-themes.zip generated-themes.nix --clobber
           else
-            gh release create "$RELEASE_TAG" generated-themes.zip \
+            gh release create "$RELEASE_TAG" generated-themes.zip generated-themes.nix \
               --title "$RELEASE_TAG" \
               --notes "Generated theme files."
           fi

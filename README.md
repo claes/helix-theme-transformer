@@ -26,6 +26,29 @@ htt export path/to/helix/theme.toml --out-dir generated-themes-directory
 The output directory will contain one directory named after the source theme file.
 Each supported format is written into its own subdirectory.
 
+## NixOS and Home Manager
+
+Released theme archives include a `generated-themes.nix` file for NixOS flakes.
+Add it as a non-flake input:
+
+```nix
+inputs.htt-themes-nix = {
+  url = "https://github.com/claes/helix-theme-transformer/releases/download/generated-themes-latest/generated-themes.nix";
+  flake = false;
+};
+```
+
+Then import it with `pkgs` and use the generated file attributes:
+
+```nix
+let
+  httThemes = import htt-themes-nix { inherit pkgs; };
+in {
+  xdg.configFile."kitty/current-theme.conf".source =
+    httThemes.themes."adwaita-dark".kitty;
+}
+```
+
 # Contributing
 
 This program has been created with help of OpenAI codex. Pull requests for export to

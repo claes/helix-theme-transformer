@@ -5,4 +5,6 @@
 /.envrc
 generated-themes
 helix-themes
+generated-themes.zip
+generated-themes.nix
 *.rs.bk
