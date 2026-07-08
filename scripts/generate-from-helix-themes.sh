@@ -33,7 +33,7 @@ while IFS= read -r -d '' theme_file; do
   echo "Generating theme from $theme_file"
   "$htt_bin" export "$theme_file" --out-dir "$out_dir"
   mkdir -p "$out_dir/$theme_name/helix"
-  cp "$theme_file" "$out_dir/$theme_name/helix/"
+  cp "$theme_file" "$out_dir/$theme_name/helix/theme.toml"
   count=$((count + 1))
 done < <(find "$themes_dir" -type f -name '*.toml' -print0 | sort -z)
 

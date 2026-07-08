@@ -750,21 +750,15 @@ The user provides a parent output directory. Helix Theme Transformer must create
 
 ```text
 <out-dir>/<theme-file-name>/gitui/theme.ron
-<out-dir>/<theme-file-name>/gitui/<resolved-theme-name>.tmTheme
+<out-dir>/<theme-file-name>/gitui/syntax.tmTheme
 ```
 
 `theme.ron` is a gitui RON patch file for UI colors. The `.tmTheme` file is a TextMate syntax highlighting theme. The RON file must reference the generated syntax theme by file stem:
 
 ```ron
 (
-  syntax: Some("my-theme"),
+  syntax: Some("syntax"),
 )
-```
-
-If the resolved theme name is `my-theme`, the generated syntax file must be:
-
-```text
-my-theme.tmTheme
 ```
 
 ## 10.1 Architecture rule
@@ -784,7 +778,7 @@ Derived 16-color palette
    ↓
 gitui exporter
    ├── theme.ron
-   └── <resolved-theme-name>.tmTheme
+   └── syntax.tmTheme
 ```
 
 The syntax `.tmTheme` file should reuse the same TextMate exporter behavior used for the bat exporter.
@@ -849,7 +843,7 @@ Example:
   tag_fg: Some("#7dcfff"),
   branch_fg: Some("#e0af68"),
   block_title_focused: Some("#c0caf5"),
-  syntax: Some("my-theme"),
+  syntax: Some("syntax"),
 )
 ```
 
@@ -867,7 +861,7 @@ This creates:
 
 ```text
 generated/my-theme/gitui/theme.ron
-generated/my-theme/gitui/<resolved-theme-name>.tmTheme
+generated/my-theme/gitui/syntax.tmTheme
 ```
 
 The gitui exporter must not require individual output file options for the RON or `.tmTheme` files.
@@ -879,7 +873,7 @@ The gitui exporter must not require individual output file options for the RON o
 Generate Midnight Commander skin, file classification, and color table files:
 
 ```text
-<out-dir>/<theme-file-name>/mc/<resolved-theme-name>.ini
+<out-dir>/<theme-file-name>/mc/theme.ini
 <out-dir>/<theme-file-name>/mc/filehighlight.ini
 <out-dir>/<theme-file-name>/mc/colortable.env
 ```
@@ -893,7 +887,7 @@ Midnight Commander user skins are commonly installed under:
 The skin can then be selected with:
 
 ```bash
-mc -S <resolved-theme-name>
+mc -S theme
 ```
 
 ## 11.1 Architecture rule
@@ -912,7 +906,7 @@ Semantic Roles
 Derived 16-color palette
    ↓
 Midnight Commander exporter
-   ├── <resolved-theme-name>.ini
+   ├── theme.ini
    ├── filehighlight.ini
    └── colortable.env
 ```
@@ -1094,7 +1088,7 @@ The Midnight Commander exporter should report:
 Generate a GNU `dircolors` database file:
 
 ```text
-<out-dir>/<theme-file-name>/dircolors/<resolved-theme-name>.dircolors
+<out-dir>/<theme-file-name>/dircolors/theme.dircolors
 ```
 
 The exported file must be a `dircolors` input database, not a raw `LS_COLORS` environment assignment.
@@ -1102,7 +1096,7 @@ The exported file must be a `dircolors` input database, not a raw `LS_COLORS` en
 Users can load it with:
 
 ```bash
-eval "$(dircolors generated/<theme-file-name>/dircolors/<resolved-theme-name>.dircolors)"
+eval "$(dircolors generated/<theme-file-name>/dircolors/theme.dircolors)"
 ```
 
 ## 12.1 Architecture rule
@@ -1121,7 +1115,7 @@ Semantic Roles
 Derived 16-color palette
    ↓
 dircolors exporter
-   └── <resolved-theme-name>.dircolors
+   └── theme.dircolors
 ```
 
 ## 12.2 Truecolor SGR output
@@ -1319,15 +1313,15 @@ The output directory layout is:
 ```text
 generated/
   my-theme/
-    kitty/<resolved-theme-name>.conf
-    base16/<resolved-theme-name>.yaml
-    bat/<resolved-theme-name>.tmTheme
+    kitty/theme.conf
+    base16/theme.yaml
+    bat/theme.tmTheme
     gitui/theme.ron
-    gitui/<resolved-theme-name>.tmTheme
-    mc/<resolved-theme-name>.ini
+    gitui/syntax.tmTheme
+    mc/theme.ini
     mc/filehighlight.ini
     mc/colortable.env
-    dircolors/<resolved-theme-name>.dircolors
+    dircolors/theme.dircolors
     yazi/theme.toml
 ```
 
@@ -1369,24 +1363,26 @@ generated-themes.zip
 generated-themes.nix
 ```
 
-`generated-themes.zip` contains the generated theme tree:
+`generated-themes.zip` contains the generated theme tree and the transposition helper script:
 
 ```text
 generated-themes/
   manifest.json
   CREDITS
   <theme-file-name>/
-    kitty/<resolved-theme-name>.conf
-    base16/<resolved-theme-name>.yaml
-    bat/<resolved-theme-name>.tmTheme
+    kitty/theme.conf
+    base16/theme.yaml
+    bat/theme.tmTheme
     gitui/theme.ron
-    gitui/<resolved-theme-name>.tmTheme
-    mc/<resolved-theme-name>.ini
+    gitui/syntax.tmTheme
+    mc/theme.ini
     mc/filehighlight.ini
     mc/colortable.env
-    dircolors/<resolved-theme-name>.dircolors
+    dircolors/theme.dircolors
     yazi/theme.toml
-    helix/<theme-file-name>.toml
+    helix/theme.toml
+scripts/
+  transpose-generated-themes.sh
 ```
 
 The `helix/` directory preserves the source Helix theme TOML file used to generate the exported files. The top-level `CREDITS` file must identify the Helix repository theme directory as the source of the Helix theme files and credit the original authors and Helix project contributors.
@@ -1400,35 +1396,63 @@ Example:
   "themes": {
     "adwaita-dark": {
       "kitty": {
-        "theme": "adwaita-dark/kitty/adwaita-dark.conf"
+        "theme": "adwaita-dark/kitty/theme.conf"
       },
       "base16": {
-        "theme": "adwaita-dark/base16/adwaita-dark.yaml"
+        "theme": "adwaita-dark/base16/theme.yaml"
       },
       "bat": {
-        "theme": "adwaita-dark/bat/adwaita-dark.tmTheme"
+        "theme": "adwaita-dark/bat/theme.tmTheme"
       },
       "gitui": {
         "theme": "adwaita-dark/gitui/theme.ron",
-        "syntax": "adwaita-dark/gitui/adwaita-dark.tmTheme"
+        "syntax": "adwaita-dark/gitui/syntax.tmTheme"
       },
       "mc": {
-        "theme": "adwaita-dark/mc/adwaita-dark.ini",
+        "theme": "adwaita-dark/mc/theme.ini",
         "filehighlight": "adwaita-dark/mc/filehighlight.ini",
         "colortable": "adwaita-dark/mc/colortable.env"
       },
       "dircolors": {
-        "theme": "adwaita-dark/dircolors/adwaita-dark.dircolors"
+        "theme": "adwaita-dark/dircolors/theme.dircolors"
       },
       "yazi": {
         "theme": "adwaita-dark/yazi/theme.toml"
       },
       "helix": {
-        "theme": "adwaita-dark/helix/adwaita-dark.toml"
+        "theme": "adwaita-dark/helix/theme.toml"
       }
     }
   }
 }
+```
+
+The release archive must also include `scripts/transpose-generated-themes.sh`.
+The script reads a per-theme generated tree and writes a per-application tree:
+
+```bash
+scripts/transpose-generated-themes.sh generated-themes generated-themes-by-app
+```
+
+Defaults are `generated-themes` for input and `generated-themes-by-app` for
+output. The script must fail if the output directory already exists.
+
+The transposed tree uses the theme directory name as each application filename
+stem:
+
+```text
+generated-themes-by-app/
+  kitty/adwaita-dark.conf
+  base16/adwaita-dark.yaml
+  bat/adwaita-dark.tmTheme
+  gitui/adwaita-dark/theme.ron
+  gitui/adwaita-dark/syntax.tmTheme
+  mc/adwaita-dark.ini
+  mc/adwaita-dark-filehighlight.ini
+  mc/adwaita-dark-colortable.env
+  dircolors/adwaita-dark.dircolors
+  yazi/adwaita-dark/theme.toml
+  helix/adwaita-dark.toml
 ```
 
 ## 15.1 Nix release file
@@ -1638,7 +1662,7 @@ Exporters
    ├── bat .tmTheme
    ├── gitui
    │   ├── theme.ron
-   │   └── <resolved-theme-name>.tmTheme
+   │   └── syntax.tmTheme
    ├── Midnight Commander skin
    ├── dircolors
    └── yazi theme.toml

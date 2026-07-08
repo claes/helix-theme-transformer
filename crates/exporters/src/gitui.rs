@@ -19,9 +19,8 @@ pub fn export_gitui(
     palette: &Base16Palette,
     warnings: Vec<Warning>,
 ) -> GituiTheme {
-    let syntax_name = syntax_name(theme);
     let (syntax_tmtheme, _) = export_bat_tmtheme(theme, roles, palette, Vec::new());
-    let theme_ron = render_theme_ron(&syntax_name, roles, palette);
+    let theme_ron = render_theme_ron("syntax", roles, palette);
     let report = ExportReport {
         exporter: "gitui".to_owned(),
         source: theme.source_path.to_string(),
@@ -32,7 +31,7 @@ pub fn export_gitui(
 
     GituiTheme {
         theme_ron,
-        syntax_file_name: format!("{syntax_name}.tmTheme"),
+        syntax_file_name: "syntax.tmTheme".to_owned(),
         syntax_tmtheme,
         report,
     }
@@ -213,20 +212,6 @@ fn gitui_preserved_items(roles: &SemanticRoles) -> Vec<PreservedItem> {
         }
     }
     items
-}
-
-fn syntax_name(theme: &ResolvedTheme) -> String {
-    theme
-        .name
-        .chars()
-        .map(|ch| {
-            if ch.is_ascii_alphanumeric() || ch == '-' || ch == '_' {
-                ch
-            } else {
-                '-'
-            }
-        })
-        .collect()
 }
 
 fn ron_escape(value: &str) -> String {

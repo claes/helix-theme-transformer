@@ -27,7 +27,8 @@ htt export path/to/helix/theme.toml --out-dir generated-themes-directory
 ```
 
 The output directory will contain one directory named after the source theme file.
-Each supported format is written into its own subdirectory.
+Each supported format is written into its own subdirectory with stable filenames
+such as `kitty/theme.conf` and `bat/theme.tmTheme`.
 
 # Contributing
 

@@ -6,7 +6,7 @@ source "$script_dir/common.sh"
 
 require_theme_arg "$@"
 theme="$1"
-theme_file="$(theme_dir "$theme")/dircolors/$theme.dircolors"
+theme_file="$(theme_dir "$theme")/dircolors/theme.dircolors"
 
 require_command dircolors
 require_command ls

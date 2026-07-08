@@ -34,18 +34,16 @@ pub struct ExportedFormat {
 }
 
 pub fn export_kitty_format(
-    file_name: &str,
     theme: &ResolvedTheme,
     roles: &SemanticRoles,
     palette: &Base16Palette,
     warnings: Vec<Warning>,
 ) -> ExportedFormat {
     let (contents, report) = export_kitty(theme, roles, palette, warnings);
-    single_file_format(format!("kitty/{file_name}.conf"), contents, report)
+    single_file_format("kitty/theme.conf".to_owned(), contents, report)
 }
 
 pub fn export_base16_format(
-    file_name: &str,
     theme: &ResolvedTheme,
     palette: &Base16Palette,
     warnings: Vec<Warning>,
@@ -59,21 +57,20 @@ pub fn export_base16_format(
         warnings,
     };
     Ok(single_file_format(
-        format!("base16/{file_name}.yaml"),
+        "base16/theme.yaml".to_owned(),
         contents,
         report,
     ))
 }
 
 pub fn export_bat_format(
-    file_name: &str,
     theme: &ResolvedTheme,
     roles: &SemanticRoles,
     palette: &Base16Palette,
     warnings: Vec<Warning>,
 ) -> ExportedFormat {
     let (contents, report) = export_bat_tmtheme(theme, roles, palette, warnings);
-    single_file_format(format!("bat/{file_name}.tmTheme"), contents, report)
+    single_file_format("bat/theme.tmTheme".to_owned(), contents, report)
 }
 
 pub fn export_gitui_format(
@@ -99,7 +96,6 @@ pub fn export_gitui_format(
 }
 
 pub fn export_mc_format(
-    file_name: &str,
     theme: &ResolvedTheme,
     roles: &SemanticRoles,
     palette: &Base16Palette,
@@ -109,7 +105,7 @@ pub fn export_mc_format(
     ExportedFormat {
         files: vec![
             ExportedFile {
-                relative_path: format!("mc/{file_name}.ini"),
+                relative_path: "mc/theme.ini".to_owned(),
                 contents: mc.skin_ini,
             },
             ExportedFile {
@@ -126,14 +122,13 @@ pub fn export_mc_format(
 }
 
 pub fn export_dircolors_format(
-    file_name: &str,
     theme: &ResolvedTheme,
     roles: &SemanticRoles,
     palette: &Base16Palette,
     warnings: Vec<Warning>,
 ) -> ExportedFormat {
     let (contents, report) = export_dircolors(theme, roles, palette, warnings);
-    single_file_format(format!("dircolors/{file_name}.dircolors"), contents, report)
+    single_file_format("dircolors/theme.dircolors".to_owned(), contents, report)
 }
 
 pub fn export_yazi_format(
@@ -209,11 +204,43 @@ mod tests {
             gitui.theme_ron,
             include_str!("../../../tests/golden/gitui/theme.ron")
         );
-        assert_eq!(gitui.syntax_file_name, "minimal.tmTheme");
+        assert_eq!(gitui.syntax_file_name, "syntax.tmTheme");
         assert_eq!(
             gitui.syntax_tmtheme,
             include_str!("../../../tests/golden/bat/minimal.tmTheme")
         );
+    }
+
+    #[test]
+    fn exported_format_paths_are_stable() {
+        let (theme, roles, palette, warnings) = minimal_pipeline();
+
+        let kitty = export_kitty_format(&theme, &roles, &palette, warnings.clone());
+        assert_eq!(kitty.files[0].relative_path, "kitty/theme.conf");
+
+        let base16 = export_base16_format(&theme, &palette, warnings.clone()).unwrap();
+        assert_eq!(base16.files[0].relative_path, "base16/theme.yaml");
+
+        let bat = export_bat_format(&theme, &roles, &palette, warnings.clone());
+        assert_eq!(bat.files[0].relative_path, "bat/theme.tmTheme");
+
+        let gitui = export_gitui_format(&theme, &roles, &palette, warnings.clone());
+        assert_eq!(gitui.files[0].relative_path, "gitui/theme.ron");
+        assert_eq!(gitui.files[1].relative_path, "gitui/syntax.tmTheme");
+
+        let mc = export_mc_format(&theme, &roles, &palette, warnings.clone());
+        assert_eq!(mc.files[0].relative_path, "mc/theme.ini");
+        assert_eq!(mc.files[1].relative_path, "mc/filehighlight.ini");
+        assert_eq!(mc.files[2].relative_path, "mc/colortable.env");
+
+        let dircolors = export_dircolors_format(&theme, &roles, &palette, warnings.clone());
+        assert_eq!(
+            dircolors.files[0].relative_path,
+            "dircolors/theme.dircolors"
+        );
+
+        let yazi = export_yazi_format(&theme, &roles, &palette, warnings);
+        assert_eq!(yazi.files[0].relative_path, "yazi/theme.toml");
     }
 
     #[test]

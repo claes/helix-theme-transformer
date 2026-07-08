@@ -6,7 +6,7 @@ source "$script_dir/common.sh"
 
 require_theme_arg "$@"
 theme="$1"
-theme_file="$(theme_dir "$theme")/kitty/$theme.conf"
+theme_file="$(theme_dir "$theme")/kitty/theme.conf"
 
 require_command kitty
 require_file "$theme_file"

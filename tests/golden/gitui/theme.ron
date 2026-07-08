@@ -20,5 +20,5 @@
   tag_fg: Some("#7dcfff"),
   branch_fg: Some("#e0af68"),
   block_title_focused: Some("#b8c2eb"),
-  syntax: Some("minimal"),
+  syntax: Some("syntax"),
 )

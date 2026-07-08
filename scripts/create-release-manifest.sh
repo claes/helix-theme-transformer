@@ -36,17 +36,17 @@ add_file() {
 while IFS= read -r -d '' theme_dir; do
   theme_name="$(basename "$theme_dir")"
 
-  add_file "$theme_name" "kitty" "theme" "$theme_name/kitty/$theme_name.conf"
-  add_file "$theme_name" "base16" "theme" "$theme_name/base16/$theme_name.yaml"
-  add_file "$theme_name" "bat" "theme" "$theme_name/bat/$theme_name.tmTheme"
+  add_file "$theme_name" "kitty" "theme" "$theme_name/kitty/theme.conf"
+  add_file "$theme_name" "base16" "theme" "$theme_name/base16/theme.yaml"
+  add_file "$theme_name" "bat" "theme" "$theme_name/bat/theme.tmTheme"
   add_file "$theme_name" "gitui" "theme" "$theme_name/gitui/theme.ron"
-  add_file "$theme_name" "gitui" "syntax" "$theme_name/gitui/$theme_name.tmTheme"
-  add_file "$theme_name" "mc" "theme" "$theme_name/mc/$theme_name.ini"
+  add_file "$theme_name" "gitui" "syntax" "$theme_name/gitui/syntax.tmTheme"
+  add_file "$theme_name" "mc" "theme" "$theme_name/mc/theme.ini"
   add_file "$theme_name" "mc" "filehighlight" "$theme_name/mc/filehighlight.ini"
   add_file "$theme_name" "mc" "colortable" "$theme_name/mc/colortable.env"
-  add_file "$theme_name" "dircolors" "theme" "$theme_name/dircolors/$theme_name.dircolors"
+  add_file "$theme_name" "dircolors" "theme" "$theme_name/dircolors/theme.dircolors"
   add_file "$theme_name" "yazi" "theme" "$theme_name/yazi/theme.toml"
-  add_file "$theme_name" "helix" "theme" "$theme_name/helix/$theme_name.toml"
+  add_file "$theme_name" "helix" "theme" "$theme_name/helix/theme.toml"
 done < <(find "$themes_dir" -mindepth 1 -maxdepth 1 -type d -print0 | sort -z)
 
 jq -Rn '
