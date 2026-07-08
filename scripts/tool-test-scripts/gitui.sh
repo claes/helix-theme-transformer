@@ -8,7 +8,7 @@ require_theme_arg "$@"
 theme="$1"
 source_dir="$(theme_dir "$theme")/gitui"
 theme_ron="$source_dir/theme.ron"
-syntax_theme="$source_dir/$theme.tmTheme"
+syntax_theme="$source_dir/syntax.tmTheme"
 tmp_dir="$(make_temp_dir)"
 
 cleanup() {

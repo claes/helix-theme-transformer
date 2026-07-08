@@ -6,7 +6,7 @@ source "$script_dir/common.sh"
 
 require_theme_arg "$@"
 theme="$1"
-theme_file="$(theme_dir "$theme")/helix/$theme.toml"
+theme_file="$(theme_dir "$theme")/helix/theme.toml"
 sample_file="tests/fixtures/minimal.toml"
 tmp_dir="$(make_temp_dir)"
 

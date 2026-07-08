@@ -6,7 +6,7 @@ source "$script_dir/common.sh"
 
 require_theme_arg "$@"
 theme="$1"
-skin_file="$(theme_dir "$theme")/mc/$theme.ini"
+skin_file="$(theme_dir "$theme")/mc/theme.ini"
 filehighlight_file="$(theme_dir "$theme")/mc/filehighlight.ini"
 colortable_file="$(theme_dir "$theme")/mc/colortable.env"
 tmp_dir="$(make_temp_dir)"

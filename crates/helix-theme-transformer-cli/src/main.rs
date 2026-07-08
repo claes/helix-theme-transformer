@@ -108,14 +108,13 @@ fn main() -> Result<()> {
                 anyhow::bail!("strict mode failed with {} warning(s)", warnings.len());
             }
 
-            let theme_name = file_stem(&resolved.name);
             let formats = vec![
-                export_kitty_format(&theme_name, &resolved, &roles, &palette, warnings.clone()),
-                export_base16_format(&theme_name, &resolved, &palette, warnings.clone())?,
-                export_bat_format(&theme_name, &resolved, &roles, &palette, warnings.clone()),
+                export_kitty_format(&resolved, &roles, &palette, warnings.clone()),
+                export_base16_format(&resolved, &palette, warnings.clone())?,
+                export_bat_format(&resolved, &roles, &palette, warnings.clone()),
                 export_gitui_format(&resolved, &roles, &palette, warnings.clone()),
-                export_mc_format(&theme_name, &resolved, &roles, &palette, warnings.clone()),
-                export_dircolors_format(&theme_name, &resolved, &roles, &palette, warnings.clone()),
+                export_mc_format(&resolved, &roles, &palette, warnings.clone()),
+                export_dircolors_format(&resolved, &roles, &palette, warnings.clone()),
                 export_yazi_format(&resolved, &roles, &palette, warnings),
             ];
             let generated = GeneratedExports::from_formats(formats);

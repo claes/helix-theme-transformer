@@ -32,9 +32,9 @@ generate-themes: generated-themes
 generated-themes/manifest.json: generated-themes scripts/create-release-manifest.sh
 	./scripts/create-release-manifest.sh
 
-generated-themes.zip: generated-themes/manifest.json
+generated-themes.zip: generated-themes/manifest.json scripts/transpose-generated-themes.sh
 	rm -f generated-themes.zip
-	zip -r generated-themes.zip generated-themes
+	zip -r generated-themes.zip generated-themes scripts/transpose-generated-themes.sh
 
 generated-themes.nix: generated-themes.zip scripts/create-release-nix.sh
 	./scripts/create-release-nix.sh "$(RELEASE_TAG)"
