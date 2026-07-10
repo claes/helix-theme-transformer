@@ -38,6 +38,7 @@ while IFS= read -r -d '' theme_dir; do
 
   add_file "$theme_name" "kitty" "theme" "$theme_name/kitty/theme.conf"
   add_file "$theme_name" "base16" "theme" "$theme_name/base16/theme.yaml"
+  add_file "$theme_name" "base16" "shell" "$theme_name/base16/set-terminal-colors.sh"
   add_file "$theme_name" "bat" "theme" "$theme_name/bat/theme.tmTheme"
   add_file "$theme_name" "gitui" "theme" "$theme_name/gitui/theme.ron"
   add_file "$theme_name" "gitui" "syntax" "$theme_name/gitui/syntax.tmTheme"

@@ -492,6 +492,54 @@ base0F fallback: operator or constant
 
 Implement simple RGB mixing, lighten, darken, and luminance helpers.
 
+## 6.3 Terminal palette shell script
+
+The Base16 exporter also generates an applied terminal palette script:
+
+```text
+base16/set-terminal-colors.sh
+```
+
+This script writes xterm-style OSC escape sequences to the current terminal session. It is intended to be executable directly and does not need to be sourced:
+
+```bash
+./generated-themes/dracula/base16/set-terminal-colors.sh
+```
+
+The script must set ANSI colors `color0` through `color15` using the same mapping as the Kitty exporter:
+
+```text
+color0                  ← base00
+color1                  ← base08
+color2                  ← base0B
+color3                  ← base0A
+color4                  ← base0D
+color5                  ← base0E
+color6                  ← base0C
+color7                  ← base05
+color8                  ← base03
+color9                  ← brighten(base08)
+color10                 ← brighten(base0B)
+color11                 ← brighten(base0A)
+color12                 ← brighten(base0D)
+color13                 ← brighten(base0E)
+color14                 ← brighten(base0C)
+color15                 ← base07
+```
+
+It must also set:
+
+```text
+foreground              ← base05
+background              ← base00
+cursor                  ← cursor or base05
+cursor text intention   ← base00
+selection_background    ← base02
+selection_foreground    ← base05
+```
+
+Use OSC `4` for ANSI palette slots, OSC `10` for foreground, OSC `11` for background, OSC `12` for cursor, OSC `17` for selection background, and OSC `19` for selection foreground. Portable xterm OSC sequences do not define a cursor text color setter, so the script records `base00` as the intended cursor text color and applies the portable cursor color only.
+
 ---
 
 # 7. Shared File Kind Styling
@@ -1315,6 +1363,7 @@ generated/
   my-theme/
     kitty/theme.conf
     base16/theme.yaml
+    base16/set-terminal-colors.sh
     bat/theme.tmTheme
     gitui/theme.ron
     gitui/syntax.tmTheme
@@ -1372,6 +1421,7 @@ generated-themes/
   <theme-file-name>/
     kitty/theme.conf
     base16/theme.yaml
+    base16/set-terminal-colors.sh
     bat/theme.tmTheme
     gitui/theme.ron
     gitui/syntax.tmTheme
@@ -1399,7 +1449,8 @@ Example:
         "theme": "adwaita-dark/kitty/theme.conf"
       },
       "base16": {
-        "theme": "adwaita-dark/base16/theme.yaml"
+        "theme": "adwaita-dark/base16/theme.yaml",
+        "shell": "adwaita-dark/base16/set-terminal-colors.sh"
       },
       "bat": {
         "theme": "adwaita-dark/bat/theme.tmTheme"
@@ -1444,6 +1495,7 @@ stem:
 generated-themes-by-app/
   kitty/adwaita-dark.conf
   base16/adwaita-dark.yaml
+  base16/adwaita-dark-set-terminal-colors.sh
   bat/adwaita-dark.tmTheme
   gitui/adwaita-dark/theme.ron
   gitui/adwaita-dark/syntax.tmTheme
@@ -1559,6 +1611,7 @@ For selected fixture themes, compare generated outputs against committed snapsho
 ```text
 tests/golden/kitty/minimal.conf
 tests/golden/base16/minimal.yaml
+tests/golden/base16/set-terminal-colors.sh
 tests/golden/bat/minimal.tmTheme
 tests/golden/gitui/theme.ron
 tests/golden/mc/minimal.ini
