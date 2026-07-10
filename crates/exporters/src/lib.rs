@@ -12,7 +12,7 @@ use palette16::Base16Palette;
 use semantic_roles::SemanticRoles;
 use theme_ir::{ResolvedTheme, Warning};
 
-pub use base16::export_base16_yaml;
+pub use base16::{export_base16_terminal_script, export_base16_yaml};
 pub use bat::export_bat_tmtheme;
 pub use dircolors::export_dircolors;
 pub use gitui::{export_gitui, GituiTheme};
@@ -25,6 +25,7 @@ pub use yazi::export_yazi;
 pub struct ExportedFile {
     pub relative_path: String,
     pub contents: String,
+    pub executable: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -45,10 +46,12 @@ pub fn export_kitty_format(
 
 pub fn export_base16_format(
     theme: &ResolvedTheme,
+    roles: &SemanticRoles,
     palette: &Base16Palette,
     warnings: Vec<Warning>,
 ) -> anyhow::Result<ExportedFormat> {
-    let contents = export_base16_yaml(palette)?;
+    let yaml = export_base16_yaml(palette)?;
+    let shell = export_base16_terminal_script(theme, roles, palette);
     let report = ExportReport {
         exporter: "base16".to_owned(),
         source: theme.source_path.to_string(),
@@ -56,11 +59,21 @@ pub fn export_base16_format(
         dropped: Vec::new(),
         warnings,
     };
-    Ok(single_file_format(
-        "base16/theme.yaml".to_owned(),
-        contents,
+    Ok(ExportedFormat {
+        files: vec![
+            ExportedFile {
+                relative_path: "base16/theme.yaml".to_owned(),
+                contents: yaml,
+                executable: false,
+            },
+            ExportedFile {
+                relative_path: "base16/set-terminal-colors.sh".to_owned(),
+                contents: shell,
+                executable: true,
+            },
+        ],
         report,
-    ))
+    })
 }
 
 pub fn export_bat_format(
@@ -85,10 +98,12 @@ pub fn export_gitui_format(
             ExportedFile {
                 relative_path: "gitui/theme.ron".to_owned(),
                 contents: gitui.theme_ron,
+                executable: false,
             },
             ExportedFile {
                 relative_path: format!("gitui/{}", gitui.syntax_file_name),
                 contents: gitui.syntax_tmtheme,
+                executable: false,
             },
         ],
         report: gitui.report,
@@ -107,14 +122,17 @@ pub fn export_mc_format(
             ExportedFile {
                 relative_path: "mc/theme.ini".to_owned(),
                 contents: mc.skin_ini,
+                executable: false,
             },
             ExportedFile {
                 relative_path: "mc/filehighlight.ini".to_owned(),
                 contents: mc.filehighlight_ini,
+                executable: false,
             },
             ExportedFile {
                 relative_path: "mc/colortable.env".to_owned(),
                 contents: mc.colortable_env,
+                executable: false,
             },
         ],
         report: mc.report,
@@ -150,6 +168,7 @@ fn single_file_format(
         files: vec![ExportedFile {
             relative_path,
             contents,
+            executable: false,
         }],
         report,
     }
@@ -176,11 +195,16 @@ mod tests {
 
     #[test]
     fn exports_base16_golden_minimal() {
-        let (_, _, palette, _) = minimal_pipeline();
+        let (theme, roles, palette, _) = minimal_pipeline();
         let yaml = export_base16_yaml(&palette).unwrap();
         assert_eq!(
             yaml,
             include_str!("../../../tests/golden/base16/minimal.yaml")
+        );
+        let shell = export_base16_terminal_script(&theme, &roles, &palette);
+        assert_eq!(
+            shell,
+            include_str!("../../../tests/golden/base16/set-terminal-colors.sh")
         );
     }
 
@@ -218,8 +242,17 @@ mod tests {
         let kitty = export_kitty_format(&theme, &roles, &palette, warnings.clone());
         assert_eq!(kitty.files[0].relative_path, "kitty/theme.conf");
 
-        let base16 = export_base16_format(&theme, &palette, warnings.clone()).unwrap();
-        assert_eq!(base16.files[0].relative_path, "base16/theme.yaml");
+        let base16 = export_base16_format(&theme, &roles, &palette, warnings.clone()).unwrap();
+        assert_eq!(
+            base16
+                .files
+                .iter()
+                .map(|file| file.relative_path.as_str())
+                .collect::<Vec<_>>(),
+            vec!["base16/theme.yaml", "base16/set-terminal-colors.sh"]
+        );
+        assert!(!base16.files[0].executable);
+        assert!(base16.files[1].executable);
 
         let bat = export_bat_format(&theme, &roles, &palette, warnings.clone());
         assert_eq!(bat.files[0].relative_path, "bat/theme.tmTheme");

@@ -110,7 +110,7 @@ fn main() -> Result<()> {
 
             let formats = vec![
                 export_kitty_format(&resolved, &roles, &palette, warnings.clone()),
-                export_base16_format(&resolved, &palette, warnings.clone())?,
+                export_base16_format(&resolved, &roles, &palette, warnings.clone())?,
                 export_bat_format(&resolved, &roles, &palette, warnings.clone()),
                 export_gitui_format(&resolved, &roles, &palette, warnings.clone()),
                 export_mc_format(&resolved, &roles, &palette, warnings.clone()),
@@ -137,12 +137,37 @@ fn main() -> Result<()> {
                         std::fs::create_dir_all(parent)
                             .with_context(|| format!("failed to create {parent}"))?;
                     }
-                    std::fs::write(&path, export.contents)
-                        .with_context(|| format!("failed to write {path}"))?;
+                    write_exported_file(&path, &export)?;
                 }
             }
         }
     }
+    Ok(())
+}
+
+fn write_exported_file(path: &Utf8PathBuf, export: &exporters::ExportedFile) -> Result<()> {
+    std::fs::write(path, &export.contents).with_context(|| format!("failed to write {path}"))?;
+    set_executable_if_requested(path, export.executable)?;
+    Ok(())
+}
+
+#[cfg(unix)]
+fn set_executable_if_requested(path: &Utf8PathBuf, executable: bool) -> Result<()> {
+    use std::os::unix::fs::PermissionsExt;
+
+    if executable {
+        let mut permissions = std::fs::metadata(path)
+            .with_context(|| format!("failed to read permissions for {path}"))?
+            .permissions();
+        permissions.set_mode(0o755);
+        std::fs::set_permissions(path, permissions)
+            .with_context(|| format!("failed to set executable permissions on {path}"))?;
+    }
+    Ok(())
+}
+
+#[cfg(not(unix))]
+fn set_executable_if_requested(_path: &Utf8PathBuf, _executable: bool) -> Result<()> {
     Ok(())
 }
 
@@ -206,4 +231,38 @@ fn print_json<T: serde::Serialize>(value: &T, pretty: bool) -> Result<()> {
         println!("{}", serde_json::to_string(value)?);
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[cfg(unix)]
+    #[test]
+    fn write_exported_file_sets_executable_mode() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let path = temp_path("htt-executable-test.sh");
+        let export = exporters::ExportedFile {
+            relative_path: "base16/set-terminal-colors.sh".to_owned(),
+            contents: "#!/usr/bin/env bash\n".to_owned(),
+            executable: true,
+        };
+
+        write_exported_file(&path, &export).unwrap();
+
+        let mode = std::fs::metadata(&path).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode, 0o755);
+
+        std::fs::remove_file(path).unwrap();
+    }
+
+    fn temp_path(name: &str) -> Utf8PathBuf {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        Utf8PathBuf::from(format!("/tmp/{name}-{nanos}"))
+    }
 }

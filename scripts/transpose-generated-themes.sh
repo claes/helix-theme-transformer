@@ -36,6 +36,7 @@ while IFS= read -r -d '' theme_dir; do
 
   copy_file "$theme_dir/kitty/theme.conf" "$out_dir/kitty/$theme_name.conf"
   copy_file "$theme_dir/base16/theme.yaml" "$out_dir/base16/$theme_name.yaml"
+  copy_file "$theme_dir/base16/set-terminal-colors.sh" "$out_dir/base16/$theme_name-set-terminal-colors.sh"
   copy_file "$theme_dir/bat/theme.tmTheme" "$out_dir/bat/$theme_name.tmTheme"
   copy_file "$theme_dir/gitui/theme.ron" "$out_dir/gitui/$theme_name/theme.ron"
   copy_file "$theme_dir/gitui/syntax.tmTheme" "$out_dir/gitui/$theme_name/syntax.tmTheme"
