@@ -295,6 +295,32 @@ banana = "#7aa2f7"
 
 The function role is `#7aa2f7`, even though the palette name is `banana`.
 
+## 4.3 Semantic UI styles
+
+Alongside scalar color roles, derive `SemanticUiStyles` from the resolved theme.
+These component styles preserve foreground/background pairs and emphasis:
+
+| Style | Helix scope priority |
+|---|---|
+| Menu | `ui.menu` |
+| Selected menu | `ui.menu.selected` |
+| Popup | `ui.popup` |
+| Focused control | `ui.text.focus` |
+| Primary text selection | `ui.selection.primary`, then `ui.selection` |
+| Inactive text | `ui.text.inactive` |
+
+Each color property carries its source scope, source property, and confidence.
+Preserve modifiers, underline presence, and the scope supplying emphasis.
+Primary-selection properties fall back independently to `ui.selection`.
+A nonempty partial selected-menu style inherits missing colors from `ui.menu`,
+marking those inherited properties as fallback confidence. Absent styles stay
+absent so exporters can apply component-appropriate fallbacks.
+
+Derive styles after theme inheritance and palette resolution, alongside scalar
+roles, and pass them explicitly through the palette stage to exporters. Do not
+replace scalar roles or change Base16 extraction. Initially only MC consumes the
+new styles; other exporters retain their existing output.
+
 ---
 
 # 5. Helix Scope → Semantic Role Mapping
@@ -1038,14 +1064,14 @@ core.selected       ← foreground;selection
 core.marked         ← warning;background;bold
 core.header         ← type;background;bold
 
-dialog._default_    ← foreground;surface
-dialog.dfocus       ← background;selection;bold
+dialog._default_    ← popup style
+dialog.dfocus       ← focused-control style, then selected-menu style
 
 error._default_     ← foreground;error
 error.errdfocus     ← background;warning;bold
 
-menu._default_      ← foreground;surface
-menu.menusel        ← foreground;selection
+menu._default_      ← menu style
+menu.menusel        ← selected-menu style
 
 statusbar._default_ ← background;special
 
@@ -1063,6 +1089,47 @@ diffviewer.changed  ← background;git_modified
 diffviewer.removed  ← foreground;git_removed
 diffviewer.error    ← foreground;error
 ```
+
+### Component styles and readability
+
+Both `[menu]` and `[popupmenu]` use semantic menu and selected-menu styles.
+Complete missing normal menu and popup colors from general foreground/background
+roles, then `base05`/`base00`. Selected-menu fallback order is selected menu,
+focused control, primary text selection, then reversal of the normal menu pair.
+Complete partial candidates from the normal menu. Skip absent candidates and
+candidates identical to the normal style in colors and supported emphasis.
+
+Dialogs use the popup pair. Complete focused-control styles from the popup pair;
+if they provide no visual distinction, use the resolved selected-menu style.
+Inactive menu text prefers `ui.text.inactive`, then muted foreground/`base03`,
+and uses the normal menu background.
+Preserve bold, italic, and underline; materialize reversed styles by swapping
+their colors. Menu/dialog mnemonic letters use their state's foreground with
+underline, rather than a warning color. Menu/dialog titles use their component's
+foreground with bold.
+
+Apply the following MC-specific readability policy to menus, popup menus, and
+dialog styles, including explicit source styles. Do not use theme-name rules:
+
+- Active text must have at least 4.5:1 relative-luminance contrast with its background.
+- Inactive text must have at least 3:1 contrast.
+- Selected/focused backgrounds must have at least 1.5:1 contrast with the
+  surrounding component background. Retain emphasis as an additional cue.
+- Correct state-background separation first, then text contrast. Keep passing
+  colors unchanged. For a failing color, mix toward black and white in steps of
+  1/255; choose the first passing amount, breaking ties toward black. Always
+  evaluate the resulting rounded RGB values.
+
+Resolve and correct truecolor styles once, then reuse them for skin and color
+table rendering. For the color table, quantize to actual xterm color-cube levels
+`0,95,135,175,215,255` and grayscale levels `8,18,...,238`. Select the nearest
+RGB color by squared RGB distance, breaking ties by ascending hex value. Check
+contrast again against rendered palette colors; repair a failing color using
+the nearest palette color satisfying the threshold, background first. Inactive
+entries share the quantized normal-menu background. Emit the corresponding
+`rgbNNN` or `grayN` tokens; do not depend on configurable ANSI colors.
+
+Other MC fields keep their existing mappings. Output filenames remain unchanged.
 
 ## 11.6 File highlighting
 
@@ -1125,9 +1192,17 @@ The Midnight Commander exporter should report:
 
 1. Helix syntax scopes collapse to Midnight Commander UI fields.
 2. Helix underline styles collapse to Midnight Commander `underline`.
-3. Helix `dim`, `crossed_out`, and `reversed` modifiers are not represented.
+3. Helix `dim` and `crossed_out` modifiers are not represented; `reversed` is
+   materialized only for component UI styles.
 4. Alpha is unsupported by Midnight Commander skins.
 5. `MC_COLOR_TABLE` quantizes truecolor values to MC 256-color tokens.
+
+For component colors changed by readability correction or quantization, emit
+`mc_ui_color_adjusted` warnings identifying the target style, original and final
+foreground/background values, output variant, and reason. Preserve property
+provenance for unchanged colors, including semantic fallback sources. Omit
+adjusted or reversed color properties from exact-preservation claims. Include
+preserved component emphasis and color-table property provenance in reports.
 
 ---
 

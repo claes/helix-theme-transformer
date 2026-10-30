@@ -2,6 +2,9 @@ use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use theme_ir::{Confidence, ResolvedTheme, SemanticRoleValue, SourceProperty, Style, Warning};
 
+mod ui;
+pub use ui::{derive_ui_styles, SemanticUiStyle, SemanticUiStyles};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Role {

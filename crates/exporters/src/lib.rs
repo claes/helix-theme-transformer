@@ -5,6 +5,7 @@ mod file_kinds;
 mod gitui;
 mod kitty;
 mod mc;
+mod mc_ui;
 mod report;
 mod yazi;
 
@@ -114,9 +115,10 @@ pub fn export_mc_format(
     theme: &ResolvedTheme,
     roles: &SemanticRoles,
     palette: &Base16Palette,
+    ui: &semantic_roles::SemanticUiStyles,
     warnings: Vec<Warning>,
 ) -> ExportedFormat {
-    let mc = mc::export_mc(theme, roles, palette, warnings);
+    let mc = mc::export_mc(theme, roles, palette, ui, warnings);
     ExportedFormat {
         files: vec![
             ExportedFile {
@@ -261,7 +263,13 @@ mod tests {
         assert_eq!(gitui.files[0].relative_path, "gitui/theme.ron");
         assert_eq!(gitui.files[1].relative_path, "gitui/syntax.tmTheme");
 
-        let mc = export_mc_format(&theme, &roles, &palette, warnings.clone());
+        let mc = export_mc_format(
+            &theme,
+            &roles,
+            &palette,
+            &semantic_roles::derive_ui_styles(&theme),
+            warnings.clone(),
+        );
         assert_eq!(mc.files[0].relative_path, "mc/theme.ini");
         assert_eq!(mc.files[1].relative_path, "mc/filehighlight.ini");
         assert_eq!(mc.files[2].relative_path, "mc/colortable.env");
@@ -280,7 +288,13 @@ mod tests {
     fn exports_mc_golden_minimal() {
         let (theme, roles, palette, mut warnings) = minimal_pipeline();
         warnings.extend(theme.warnings.clone());
-        let mc = export_mc(&theme, &roles, &palette, warnings);
+        let mc = export_mc(
+            &theme,
+            &roles,
+            &palette,
+            &semantic_roles::derive_ui_styles(&theme),
+            warnings,
+        );
         assert_eq!(
             mc.skin_ini,
             include_str!("../../../tests/golden/mc/minimal.ini")
