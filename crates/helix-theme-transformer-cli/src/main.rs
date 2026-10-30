@@ -7,7 +7,7 @@ use exporters::{
 };
 use helix_theme::resolve_file;
 use palette16::extract_base16;
-use semantic_roles::derive_roles;
+use semantic_roles::{derive_roles, derive_ui_styles};
 
 #[derive(Debug, Parser)]
 #[command(name = "htt")]
@@ -100,6 +100,7 @@ fn main() -> Result<()> {
             let theme_dirs = theme_dirs_or_parent(&theme, theme_dirs);
             let resolved = resolve_file(&theme, &theme_dirs)?;
             let (roles, role_warnings) = derive_roles(&resolved);
+            let ui = derive_ui_styles(&resolved);
             let (palette, palette_warnings) = extract_base16(&roles);
             let mut warnings = resolved.warnings.clone();
             warnings.extend(role_warnings);
@@ -113,7 +114,7 @@ fn main() -> Result<()> {
                 export_base16_format(&resolved, &roles, &palette, warnings.clone())?,
                 export_bat_format(&resolved, &roles, &palette, warnings.clone()),
                 export_gitui_format(&resolved, &roles, &palette, warnings.clone()),
-                export_mc_format(&resolved, &roles, &palette, warnings.clone()),
+                export_mc_format(&resolved, &roles, &palette, &ui, warnings.clone()),
                 export_dircolors_format(&resolved, &roles, &palette, warnings.clone()),
                 export_yazi_format(&resolved, &roles, &palette, warnings),
             ];
