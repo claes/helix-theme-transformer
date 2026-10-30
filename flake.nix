@@ -40,7 +40,7 @@
             pname = "helix-theme-transformer";
             version = "0.1.0";
             inherit src;
-            cargoHash = "sha256-DMoRs9l7VDcZTY0wzfoVuoAzlFKb2Mz6m1R5KdM81E4=";
+            cargoHash = "sha256-U4Zbp06JFY1kI102QZ2LQFGWaAIgkCNkX/vj32x4goU=";
             nativeBuildInputs = [
               pkgs.pkg-config
             ];
@@ -94,6 +94,7 @@
               pkgs.rustc
               pkgs.rustfmt
               pkgs.unzip
+              pkgs.zellij
               pkgs.zip
             ];
 
