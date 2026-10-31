@@ -15,6 +15,7 @@ Initial targets:
 7. Midnight Commander skin export
 8. GNU `dircolors` database export
 9. Yazi `theme.toml` export
+10. Zellij component-based KDL theme export
 
 The core principle is:
 
@@ -318,8 +319,8 @@ absent so exporters can apply component-appropriate fallbacks.
 
 Derive styles after theme inheritance and palette resolution, alongside scalar
 roles, and pass them explicitly through the palette stage to exporters. Do not
-replace scalar roles or change Base16 extraction. Initially only MC consumes the
-new styles; other exporters retain their existing output.
+replace scalar roles or change Base16 extraction. MC and Zellij consume these
+styles; other exporters retain their existing output.
 
 ---
 
@@ -1380,6 +1381,77 @@ The Yazi exporter should report:
 
 ---
 
+# 13a. Zellij Exporter
+
+Generate `<out-dir>/<theme-file-name>/zellij/theme.kdl` and
+`<out-dir>/<theme-file-name>/zellij/theme-static.kdl` using the current
+component-based format documented at <https://zellij.dev/documentation/themes.html>.
+The exporter consumes resolved theme metadata, semantic roles, the derived palette,
+and `SemanticUiStyles`; it must not inspect Helix scopes for color mapping.
+
+Emit one `themes` block containing a quoted, escaped node named after the resolved
+theme. Include a safely escaped activation directive (`theme "name"`) in a comment.
+The static variant uses the quoted node name `"static"` instead. Its contents
+must otherwise be byte-for-byte identical to the named variant, including all
+comments and the activation example referring to the real theme name. Return
+both non-executable files in named/static order with one shared export report;
+do not duplicate warnings or provenance for the second file.
+Every component has `base`, `background`, and `emphasis_0` through `emphasis_3`,
+as decimal RGB triplets in deterministic order.
+
+Resolve UI foreground/background properties independently, then use scalar roles
+and the corresponding Base16 fallback:
+
+| Components | Preferred semantic UI style | Base / background fallback |
+|---|---|---|
+| `text_unselected` | none | foreground/base05, background/base00 |
+| `text_selected` | primary selection | foreground/base05, selection/base02 |
+| `ribbon_unselected`, `list_unselected`, `table_cell_unselected` | menu | foreground/base05, surface/base01 |
+| `ribbon_selected`, `list_selected`, `table_cell_selected` | selected menu | foreground/base05, selection/base02 |
+| `table_title` | focused control | function/base0D, surface/base01 |
+| `frame_unselected` | inactive text | muted_foreground/base03, background/base00 |
+| `frame_selected` | focused control | function/base0D, background/base00 |
+| `frame_highlight` | none | warning/base0A, background/base00 |
+| `exit_code_success` | none | git_added then string/base0B, background/base00 |
+| `exit_code_error` | none | error/base08, background/base00 |
+
+For all components, emphasis colors 0–3 are warning/base0A, function/base0D,
+string/base0B, and keyword/base0E. Materialize reversed semantic UI styles by
+swapping the resolved base/background pair. Other modifiers and underline styling
+are unsupported. Preserve RGB without contrast correction; discard alpha and emit
+`zellij_alpha_unsupported` warnings identifying the affected property and source color.
+
+Emit `multiplayer_user_colors` players 1–10 from base0E, base0D, base0B, base0A,
+base0C, base08, base09, base0F, base05, and base07, respectively.
+
+The export report records property-level provenance for exact RGB preservation,
+including component fallbacks and reversed property sources. Inferred palette
+colors and alpha-bearing colors must not be claimed as exactly preserved.
+Report syntax scopes collapsing to component colors, unsupported modifiers and
+underlines, and the limited materialization of reversed styling.
+
+Include Zellij in normal CLI exports and reports with existing strict/dry-run
+semantics. Releases expose `zellij.theme` and `zellij.theme-static` in each theme's
+manifest entry and Nix attributes, only when the corresponding files exist.
+Transposed outputs are `zellij/<theme>.kdl` and `zellij/<theme>-static.kdl`.
+
+For symlink-based switching, link `CONFIG_DIR/themes/current.kdl` to the desired
+`zellij/theme-static.kdl` and set `theme "static"` in `config.kdl`, regardless of
+the preserved activation comment. Switch the link to select another theme.
+Symlink management is the user's responsibility; no CLI option is required.
+The executable `scripts/tool-test-scripts/zellij.sh THEME` must use isolated
+configuration/cache directories and a disposable session with tabs, multiple
+panes, visible frames/status bar, and successful/failed command exit indicators.
+Use predictable sample commands instead of loading the user's interactive shell
+configuration, show navigation/quit instructions, and retain exit-code panes.
+Register theme completion and clean up the preview session on exit.
+
+Acceptance requires parseable KDL, deterministic golden output, provenance and
+fallback tests, CLI/release integration checks, and a matching interactive preview.
+Legacy palettes and automatic dark/light switching are outside this exporter.
+
+---
+
 # 14. Loss Report
 
 Every export should produce a report.
@@ -1447,6 +1519,7 @@ generated/
     mc/colortable.env
     dircolors/theme.dircolors
     yazi/theme.toml
+    zellij/theme.kdl
 ```
 
 ## 14.1 Inheritance lookup
@@ -1458,6 +1531,7 @@ When provided, inherited theme names are searched in the given directories in co
 When omitted, inherited theme names are searched in the input theme file's parent directory.
 
 ## 14.2 Useful options
+    zellij/theme-static.kdl
 
 ```text
 --strict
@@ -1505,6 +1579,7 @@ generated-themes/
     mc/colortable.env
     dircolors/theme.dircolors
     yazi/theme.toml
+    zellij/theme.kdl
     helix/theme.toml
 scripts/
   transpose-generated-themes.sh
@@ -1516,6 +1591,7 @@ The `helix/` directory preserves the source Helix theme TOML file used to genera
 
 Example:
 
+    zellij/theme-static.kdl
 ```json
 {
   "themes": {
@@ -1544,6 +1620,10 @@ Example:
       },
       "yazi": {
         "theme": "adwaita-dark/yazi/theme.toml"
+      },
+      "zellij": {
+        "theme": "adwaita-dark/zellij/theme.kdl",
+        "theme-static": "adwaita-dark/zellij/theme-static.kdl"
       },
       "helix": {
         "theme": "adwaita-dark/helix/theme.toml"
@@ -1579,6 +1659,7 @@ generated-themes-by-app/
   mc/adwaita-dark-colortable.env
   dircolors/adwaita-dark.dircolors
   yazi/adwaita-dark/theme.toml
+  zellij/adwaita-dark.kdl
   helix/adwaita-dark.toml
 ```
 
@@ -1590,6 +1671,7 @@ The file has this shape:
 
 ```nix
 { pkgs }:
+  zellij/adwaita-dark-static.kdl
 
 let
   src = pkgs.fetchzip {
@@ -1624,6 +1706,10 @@ A NixOS flake using Home Manager can consume released themes by importing `gener
 ```nix
 inputs.htt-themes-nix = {
   url = "https://github.com/claes/helix-theme-transformer/releases/download/generated-themes-latest/generated-themes.nix";
+Alternatively, set `xdg.configFile."zellij/themes/current.kdl".source` to
+`httThemes.themes."adwaita-dark".zellij.theme-static` and configure
+`theme "static"` to keep the configured name fixed when changing the source.
+
   flake = false;
 };
 ```
@@ -1661,7 +1747,8 @@ Test:
 10. Midnight Commander skin export
 11. GNU `dircolors` export
 12. Yazi `theme.toml` export
-13. Loss report generation
+13. Zellij component KDL export
+14. Loss report generation
 
 ## 16.2 Fixture themes
 
@@ -1694,6 +1781,7 @@ tests/golden/mc/filehighlight.ini
 tests/golden/mc/colortable.env
 tests/golden/dircolors/minimal.dircolors
 tests/golden/yazi/minimal.toml
+tests/golden/zellij/minimal.kdl
 ```
 
 ## 16.4 Interactive tool test scripts
@@ -1710,6 +1798,7 @@ The script must accept a generated theme name as its first argument:
 ./scripts/tool-test-scripts/<tool>.sh adwaita-dark
 ```
 
+tests/golden/zellij/minimal-static.kdl
 It should invoke the target tool with the generated theme files from `generated-themes/<theme>/...` and show a useful interactive or visual sample for tuning the exporter output.
 
 When the target tool requires configuration files or cache files, the script should prefer temporary isolated config/cache directories instead of mutating the user's real configuration.
@@ -1739,6 +1828,7 @@ The tool is acceptable when:
 15. It can generate release artifacts containing `generated-themes.zip` and a parseable `generated-themes.nix` for NixOS/Home Manager consumption.
 16. Every interactive tool exporter has a matching script in `scripts/tool-test-scripts/` for locally previewing and tuning generated themes.
 17. File-oriented exporters share the same `FileKind` style mapping for equivalent file types and statuses.
+18. It exports a valid Zellij component-based KDL theme with semantic UI colors and a loss report.
 
 ---
 
@@ -1762,6 +1852,7 @@ Implement in this order:
 13. Midnight Commander exporter
 14. dircolors exporter
 15. Yazi exporter
+15a. Zellij exporter
 16. Reports
 17. Batch export
 18. Release Nix artifact generation
@@ -1793,7 +1884,8 @@ Exporters
    │   └── syntax.tmTheme
    ├── Midnight Commander skin
    ├── dircolors
-   └── yazi theme.toml
+   ├── yazi theme.toml
+   └── zellij theme.kdl
 ```
 
 Never implement direct one-off conversion logic such as:
@@ -1805,6 +1897,7 @@ Helix TOML → gitui
 Helix TOML → Midnight Commander
 Helix TOML → dircolors
 Helix TOML → Yazi
+Helix TOML → Zellij
 ```
 
 Instead, always go through the semantic model.

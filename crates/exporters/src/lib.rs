@@ -8,6 +8,7 @@ mod mc;
 mod mc_ui;
 mod report;
 mod yazi;
+mod zellij;
 
 use palette16::Base16Palette;
 use semantic_roles::SemanticRoles;
@@ -21,6 +22,7 @@ pub use kitty::export_kitty;
 pub use mc::{export_mc, export_mc_skin, McExport};
 pub use report::{render_report, ExportReport};
 pub use yazi::export_yazi;
+pub use zellij::export_zellij;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExportedFile {
@@ -159,6 +161,33 @@ pub fn export_yazi_format(
 ) -> ExportedFormat {
     let (contents, report) = export_yazi(theme, roles, palette, warnings);
     single_file_format("yazi/theme.toml".to_owned(), contents, report)
+}
+
+pub fn export_zellij_format(
+    theme: &ResolvedTheme,
+    roles: &SemanticRoles,
+    palette: &Base16Palette,
+    ui: &semantic_roles::SemanticUiStyles,
+    warnings: Vec<Warning>,
+) -> ExportedFormat {
+    let (contents, report) = export_zellij(theme, roles, palette, ui, warnings);
+    let (static_contents, _) =
+        zellij::export_zellij_named(theme, roles, palette, ui, vec![], "static");
+    ExportedFormat {
+        files: vec![
+            ExportedFile {
+                relative_path: "zellij/theme.kdl".to_owned(),
+                contents,
+                executable: false,
+            },
+            ExportedFile {
+                relative_path: "zellij/theme-static.kdl".to_owned(),
+                contents: static_contents,
+                executable: false,
+            },
+        ],
+        report,
+    }
 }
 
 fn single_file_format(

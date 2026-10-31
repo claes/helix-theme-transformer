@@ -47,6 +47,8 @@ while IFS= read -r -d '' theme_dir; do
   add_file "$theme_name" "mc" "colortable" "$theme_name/mc/colortable.env"
   add_file "$theme_name" "dircolors" "theme" "$theme_name/dircolors/theme.dircolors"
   add_file "$theme_name" "yazi" "theme" "$theme_name/yazi/theme.toml"
+  add_file "$theme_name" "zellij" "theme" "$theme_name/zellij/theme.kdl"
+  add_file "$theme_name" "zellij" "theme-static" "$theme_name/zellij/theme-static.kdl"
   add_file "$theme_name" "helix" "theme" "$theme_name/helix/theme.toml"
 done < <(find "$themes_dir" -mindepth 1 -maxdepth 1 -type d -print0 | sort -z)
 

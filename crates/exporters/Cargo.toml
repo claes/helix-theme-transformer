@@ -14,5 +14,6 @@ serde_yaml.workspace = true
 theme-ir = { path = "../theme-ir" }
 
 [dev-dependencies]
+kdl = "4"
 camino.workspace = true
 helix-theme = { path = "../helix-theme" }

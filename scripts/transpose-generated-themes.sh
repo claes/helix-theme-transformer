@@ -45,6 +45,8 @@ while IFS= read -r -d '' theme_dir; do
   copy_file "$theme_dir/mc/colortable.env" "$out_dir/mc/$theme_name-colortable.env"
   copy_file "$theme_dir/dircolors/theme.dircolors" "$out_dir/dircolors/$theme_name.dircolors"
   copy_file "$theme_dir/yazi/theme.toml" "$out_dir/yazi/$theme_name/theme.toml"
+  copy_file "$theme_dir/zellij/theme.kdl" "$out_dir/zellij/$theme_name.kdl"
+  copy_file "$theme_dir/zellij/theme-static.kdl" "$out_dir/zellij/$theme_name-static.kdl"
   copy_file "$theme_dir/helix/theme.toml" "$out_dir/helix/$theme_name.toml"
 done < <(find "$in_dir" -mindepth 1 -maxdepth 1 -type d -print0 | sort -z)
 
