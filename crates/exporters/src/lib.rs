@@ -171,7 +171,23 @@ pub fn export_zellij_format(
     warnings: Vec<Warning>,
 ) -> ExportedFormat {
     let (contents, report) = export_zellij(theme, roles, palette, ui, warnings);
-    single_file_format("zellij/theme.kdl".to_owned(), contents, report)
+    let (static_contents, _) =
+        zellij::export_zellij_named(theme, roles, palette, ui, vec![], "static");
+    ExportedFormat {
+        files: vec![
+            ExportedFile {
+                relative_path: "zellij/theme.kdl".to_owned(),
+                contents,
+                executable: false,
+            },
+            ExportedFile {
+                relative_path: "zellij/theme-static.kdl".to_owned(),
+                contents: static_contents,
+                executable: false,
+            },
+        ],
+        report,
+    }
 }
 
 fn single_file_format(

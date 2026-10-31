@@ -13,8 +13,20 @@ pub fn export_zellij(
     ui: &SemanticUiStyles,
     warnings: Vec<Warning>,
 ) -> (String, ExportReport) {
+    export_zellij_named(theme, roles, palette, ui, warnings, &theme.name)
+}
+
+pub(crate) fn export_zellij_named(
+    theme: &ResolvedTheme,
+    roles: &SemanticRoles,
+    palette: &Base16Palette,
+    ui: &SemanticUiStyles,
+    warnings: Vec<Warning>,
+    node_name: &str,
+) -> (String, ExportReport) {
     let name = quote(&theme.name);
-    let mut output = format!("// Generated from Helix theme: {name}\n// Activate with: theme {name}\nthemes {{\n    {name} {{\n");
+    let node_name = quote(node_name);
+    let mut output = format!("// Generated from Helix theme: {name}\n// Activate with: theme {name}\nthemes {{\n    {node_name} {{\n");
     let mut report = ExportReport {
         exporter: "zellij".into(),
         source: theme.source_path.to_string(),
@@ -368,6 +380,14 @@ mod tests {
             output,
             include_str!("../../../tests/golden/zellij/minimal.kdl")
         );
+        let (theme, roles, palette, ui) =
+            pipeline(include_str!("../../../tests/fixtures/minimal.toml"));
+        let format = crate::export_zellij_format(&theme, &roles, &palette, &ui, vec![]);
+        assert_eq!(
+            format.files[1].contents,
+            include_str!("../../../tests/golden/zellij/minimal-static.kdl")
+        );
+        assert_eq!(components(&format.files[1].contents), components(&output));
         let doc = components(&output);
         assert_eq!(doc.nodes().len(), 15);
         for node in &doc.nodes()[..14] {
@@ -509,11 +529,45 @@ mod tests {
         let warning = Warning::new("upstream", "example");
         let format =
             crate::export_zellij_format(&theme, &roles, &palette, &ui, vec![warning.clone()]);
-        assert_eq!(format.files.len(), 1);
+        assert_eq!(format.files.len(), 2);
         assert_eq!(format.files[0].relative_path, "zellij/theme.kdl");
-        assert!(!format.files[0].executable);
+        assert_eq!(format.files[1].relative_path, "zellij/theme-static.kdl");
+        assert!(format.files.iter().all(|file| !file.executable));
         assert_eq!(format.report.exporter, "zellij");
         assert_eq!(format.report.warnings, vec![warning]);
+    }
+
+    #[test]
+    fn static_variant_changes_only_node_name_and_shares_report() {
+        let (mut theme, roles, palette, ui) = pipeline("\"ui.text\" = \"#abcd\"");
+        for name in ["my theme", "quote\"\\\n\r\t\u{0001}\u{2028}雪", "static"] {
+            theme.name = name.into();
+            let warning = Warning::new("upstream", "example");
+            let (named, report) =
+                export_zellij(&theme, &roles, &palette, &ui, vec![warning.clone()]);
+            let format = crate::export_zellij_format(&theme, &roles, &palette, &ui, vec![warning]);
+            assert_eq!(format.report, report);
+            assert_eq!(format.files[0].contents, named);
+            let static_output = &format.files[1].contents;
+            for (index, (named_line, static_line)) in
+                named.lines().zip(static_output.lines()).enumerate()
+            {
+                if index == 3 {
+                    assert_eq!(static_line, "    \"static\" {");
+                } else {
+                    assert_eq!(static_line, named_line);
+                }
+            }
+            assert_eq!(named.lines().count(), static_output.lines().count());
+            for (output, expected_name) in [(&named, name), (static_output, "static")] {
+                let doc: kdl::KdlDocument = output.parse().unwrap();
+                assert_eq!(doc.nodes().len(), 1);
+                let themes = doc.get("themes").unwrap().children().unwrap();
+                assert_eq!(themes.nodes().len(), 1);
+                assert_eq!(themes.nodes()[0].name().value(), expected_name);
+            }
+            assert_eq!(components(&named), components(static_output));
+        }
     }
 
     #[test]

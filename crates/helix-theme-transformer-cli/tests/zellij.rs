@@ -74,6 +74,12 @@ fn cli_exports_zellij_and_reports_and_respects_dry_run() {
     let kdl = fs::read_to_string(output_dir.join("my-theme/zellij/theme.kdl")).unwrap();
     assert!(kdl.contains("// Activate with: theme \"my theme\""));
     assert!(kdl.contains("    \"my theme\" {"));
+    let static_kdl =
+        fs::read_to_string(output_dir.join("my-theme/zellij/theme-static.kdl")).unwrap();
+    assert_eq!(
+        static_kdl,
+        kdl.replacen("\n    \"my theme\" {", "\n    \"static\" {", 1)
+    );
     for path in ["kitty/theme.conf", "yazi/theme.toml", "base16/theme.yaml"] {
         assert!(output_dir.join("my-theme").join(path).exists());
     }
@@ -109,8 +115,12 @@ fn release_manifest_and_transposition_include_only_existing_zellij_themes() {
     let theme_dir = temp.0.join("generated-themes/one/zellij");
     fs::create_dir_all(&theme_dir).unwrap();
     fs::write(theme_dir.join("theme.kdl"), "themes { one {} }\n").unwrap();
+    fs::write(theme_dir.join("theme-static.kdl"), "themes { static {} }\n").unwrap();
     fs::create_dir_all(temp.0.join("generated-themes/two/kitty")).unwrap();
     fs::write(temp.0.join("generated-themes/two/kitty/theme.conf"), "").unwrap();
+    let legacy_dir = temp.0.join("generated-themes/legacy/zellij");
+    fs::create_dir_all(&legacy_dir).unwrap();
+    fs::write(legacy_dir.join("theme.kdl"), "themes { legacy {} }\n").unwrap();
     for script in [
         "create-release-manifest.sh",
         "transpose-generated-themes.sh",
@@ -133,11 +143,34 @@ fn release_manifest_and_transposition_include_only_existing_zellij_themes() {
         manifest["themes"]["one"]["zellij"]["theme"],
         "one/zellij/theme.kdl"
     );
+    assert_eq!(
+        manifest["themes"]["one"]["zellij"]["theme-static"],
+        "one/zellij/theme-static.kdl"
+    );
+    assert!(manifest["themes"]["legacy"]["zellij"]
+        .get("theme-static")
+        .is_none());
     assert!(manifest["themes"]["two"].get("zellij").is_none());
     assert_eq!(
         fs::read(temp.0.join("generated-themes-by-app/zellij/one.kdl")).unwrap(),
         fs::read(theme_dir.join("theme.kdl")).unwrap()
     );
+    assert_eq!(
+        fs::read(temp.0.join("generated-themes-by-app/zellij/one-static.kdl")).unwrap(),
+        fs::read(theme_dir.join("theme-static.kdl")).unwrap()
+    );
+    assert!(temp
+        .0
+        .join("generated-themes-by-app/zellij/legacy.kdl")
+        .exists());
+    assert!(!temp
+        .0
+        .join("generated-themes-by-app/zellij/legacy-static.kdl")
+        .exists());
+    assert!(!temp
+        .0
+        .join("generated-themes-by-app/zellij/two-static.kdl")
+        .exists());
     assert!(!temp
         .0
         .join("generated-themes-by-app/zellij/two.kdl")

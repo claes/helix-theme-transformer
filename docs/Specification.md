@@ -1383,13 +1383,19 @@ The Yazi exporter should report:
 
 # 13a. Zellij Exporter
 
-Generate `<out-dir>/<theme-file-name>/zellij/theme.kdl` using the current
+Generate `<out-dir>/<theme-file-name>/zellij/theme.kdl` and
+`<out-dir>/<theme-file-name>/zellij/theme-static.kdl` using the current
 component-based format documented at <https://zellij.dev/documentation/themes.html>.
 The exporter consumes resolved theme metadata, semantic roles, the derived palette,
 and `SemanticUiStyles`; it must not inspect Helix scopes for color mapping.
 
 Emit one `themes` block containing a quoted, escaped node named after the resolved
 theme. Include a safely escaped activation directive (`theme "name"`) in a comment.
+The static variant uses the quoted node name `"static"` instead. Its contents
+must otherwise be byte-for-byte identical to the named variant, including all
+comments and the activation example referring to the real theme name. Return
+both non-executable files in named/static order with one shared export report;
+do not duplicate warnings or provenance for the second file.
 Every component has `base`, `background`, and `emphasis_0` through `emphasis_3`,
 as decimal RGB triplets in deterministic order.
 
@@ -1425,9 +1431,14 @@ Report syntax scopes collapsing to component colors, unsupported modifiers and
 underlines, and the limited materialization of reversed styling.
 
 Include Zellij in normal CLI exports and reports with existing strict/dry-run
-semantics. Releases expose `zellij.theme` in each theme's manifest entry and Nix
-attributes. Transposed output is `zellij/<theme>.kdl`.
+semantics. Releases expose `zellij.theme` and `zellij.theme-static` in each theme's
+manifest entry and Nix attributes, only when the corresponding files exist.
+Transposed outputs are `zellij/<theme>.kdl` and `zellij/<theme>-static.kdl`.
 
+For symlink-based switching, link `CONFIG_DIR/themes/current.kdl` to the desired
+`zellij/theme-static.kdl` and set `theme "static"` in `config.kdl`, regardless of
+the preserved activation comment. Switch the link to select another theme.
+Symlink management is the user's responsibility; no CLI option is required.
 The executable `scripts/tool-test-scripts/zellij.sh THEME` must use isolated
 configuration/cache directories and a disposable session with tabs, multiple
 panes, visible frames/status bar, and successful/failed command exit indicators.
@@ -1520,6 +1531,7 @@ When provided, inherited theme names are searched in the given directories in co
 When omitted, inherited theme names are searched in the input theme file's parent directory.
 
 ## 14.2 Useful options
+    zellij/theme-static.kdl
 
 ```text
 --strict
@@ -1579,6 +1591,7 @@ The `helix/` directory preserves the source Helix theme TOML file used to genera
 
 Example:
 
+    zellij/theme-static.kdl
 ```json
 {
   "themes": {
@@ -1609,7 +1622,8 @@ Example:
         "theme": "adwaita-dark/yazi/theme.toml"
       },
       "zellij": {
-        "theme": "adwaita-dark/zellij/theme.kdl"
+        "theme": "adwaita-dark/zellij/theme.kdl",
+        "theme-static": "adwaita-dark/zellij/theme-static.kdl"
       },
       "helix": {
         "theme": "adwaita-dark/helix/theme.toml"
@@ -1657,6 +1671,7 @@ The file has this shape:
 
 ```nix
 { pkgs }:
+  zellij/adwaita-dark-static.kdl
 
 let
   src = pkgs.fetchzip {
@@ -1691,6 +1706,10 @@ A NixOS flake using Home Manager can consume released themes by importing `gener
 ```nix
 inputs.htt-themes-nix = {
   url = "https://github.com/claes/helix-theme-transformer/releases/download/generated-themes-latest/generated-themes.nix";
+Alternatively, set `xdg.configFile."zellij/themes/current.kdl".source` to
+`httThemes.themes."adwaita-dark".zellij.theme-static` and configure
+`theme "static"` to keep the configured name fixed when changing the source.
+
   flake = false;
 };
 ```
@@ -1779,6 +1798,7 @@ The script must accept a generated theme name as its first argument:
 ./scripts/tool-test-scripts/<tool>.sh adwaita-dark
 ```
 
+tests/golden/zellij/minimal-static.kdl
 It should invoke the target tool with the generated theme files from `generated-themes/<theme>/...` and show a useful interactive or visual sample for tuning the exporter output.
 
 When the target tool requires configuration files or cache files, the script should prefer temporary isolated config/cache directories instead of mutating the user's real configuration.

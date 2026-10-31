@@ -48,6 +48,13 @@ Preview a generated theme in an isolated, disposable Zellij session:
 
 ```bash
 ./scripts/tool-test-scripts/zellij.sh adwaita-dark
+For switching themes through symlinks, link `themes/current.kdl` to the desired
+`generated-themes/<theme>/zellij/theme-static.kdl` and set `theme "static"` in
+`config.kdl`. Change the link to select another theme without changing the
+configured name. The static variant differs only in its internal theme node name;
+all comments retain the real theme name, including the named variant's activation
+example. Use `theme "static"` for this variant regardless of that comment.
+
 ```
 
 Run this inside `nix develop` (or prefix the command with `nix develop -c`).
@@ -56,9 +63,19 @@ If the generated tree predates Zellij support, regenerate it with
 instructions, active/inactive tabs and frames, and successful/failed exit codes.
 Press `Ctrl+q` to quit.
 
-Release manifests expose `themes.<theme>.zellij.theme` (also available through
-the generated Nix attributes). The transposition helper writes
-`zellij/<theme>.kdl` for convenient installation of multiple themes.
+Release manifests expose `themes.<theme>.zellij.theme` and
+`themes.<theme>.zellij.theme-static` (also available through the generated Nix
+attributes). The transposition helper writes `zellij/<theme>.kdl` and
+`zellij/<theme>-static.kdl`.
+
+For the static variant with Home Manager, use:
+
+```nix
+xdg.configFile."zellij/themes/current.kdl".source =
+  httThemes.themes."adwaita-dark".zellij.theme-static;
+```
+
+Set `theme "static"` in `config.kdl` for this configuration.
 
 # Contributing
 
